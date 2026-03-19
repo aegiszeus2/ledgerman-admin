@@ -1,0 +1,7 @@
+version: 1
+services:
+  - name: ledgeman-admin
+    type: static_site
+    buildCommand: "echo 'No build needed'"
+    staticPublishPath: "."
+    envVars: []
