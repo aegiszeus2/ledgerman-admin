@@ -386,7 +386,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 <div id="loginScreen">
     <div class="login-box">
         <div class="login-logo">
-            <img src="../ledgeman/LedgemanLogo.jpg" alt="Ledgerman" style="max-width:220px;width:100%;height:auto;border-radius:6px;margin-bottom:4px" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🛡️',style:'font-size:3rem'}))">
+            <img src="../ledgerman/LedgemanLogo.jpg" alt="Ledgerman" style="max-width:220px;width:100%;height:auto;border-radius:6px;margin-bottom:4px" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🛡️',style:'font-size:3rem'}))">
         </div>
         <h1>LittleShield</h1>
         <p class="subtitle">Ledgerman Super Admin Console</p>
@@ -399,7 +399,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Access Console</button>
         </form>
         <p style="margin-top:16px;font-size:.75rem;color:var(--text2)">
-            Key location: <code style="background:var(--bg3);padding:2px 6px;border-radius:4px">ledgeman-backend/.superadmin_key</code>
+            Key location: <code style="background:var(--bg3);padding:2px 6px;border-radius:4px">ledgerman-backend/.superadmin_key</code>
         </p>
     </div>
 </div>
@@ -627,7 +627,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 <div id="toast"></div>
 
 <script>
-const API = 'https://ledgeman-backend.onrender.com';
+const API = 'https://ledgerman-backend.onrender.com';
 let _key = '';
 let _companies = [];
 let _stats = null;
@@ -1089,7 +1089,7 @@ async function exportStats() {
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = 'ledgeman-stats-' + new Date().toISOString().slice(0,10) + '.json';
+        a.href = url; a.download = 'ledgerman-stats-' + new Date().toISOString().slice(0,10) + '.json';
         a.click(); URL.revokeObjectURL(url);
         toast('Stats exported.', 'success');
     } catch(e) { toast('Export failed: ' + e.message, 'error'); }

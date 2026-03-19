@@ -1,6 +1,6 @@
 version: 1
 services:
-  - name: ledgeman-admin
+  - name: ledgerman-admin
     type: static_site
     buildCommand: "echo 'No build needed'"
     staticPublishPath: "."
