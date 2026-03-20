@@ -594,7 +594,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <div class="card">
                 <div class="card-header"><div class="card-title">Support Resources</div></div>
                 <div style="display:flex;flex-direction:column;gap:8px">
-                    <a href="mailto:LucasDiavil@gmail.com" class="btn btn-secondary">📧 Email Support (LucasDiavil@gmail.com)</a>
+                    <a href="mailto:lucastheofilou@gmail.com" class="btn btn-secondary">📧 Email Support (lucastheofilou@gmail.com)</a>
                     <button class="btn btn-secondary" onclick="switchTab('companies')">📋 View All Companies</button>
                     <button class="btn btn-secondary" onclick="switchTab('littleshield')">🛡️ Run Diagnostics</button>
                 </div>
@@ -1062,7 +1062,7 @@ function generateOnboardLink() {
     const el = document.getElementById('onboardResult');
     if (!appUrl) { toast('Enter the app URL first.', 'error'); return; }
     const msg = name
-        ? `Hi ${name},\n\nYour Ledgerman account is ready to set up!\n\nClick the link below to get started:\n${appUrl}\n\n1. Click "Get Started"\n2. Enter your company name: ${name}\n3. Choose an admin password\n4. You're in!\n\nQuestions? Reply to this email.\n\n— Ledgerman Support\nLucasDiavil@gmail.com`
+        ? `Hi ${name},\n\nYour Ledgerman account is ready to set up!\n\nClick the link below to get started:\n${appUrl}\n\n1. Click "Get Started"\n2. Enter your company name: ${name}\n3. Choose an admin password\n4. You're in!\n\nQuestions? Reply to this email.\n\n— Ledgerman Support\nlucastheofilou@gmail.com`
         : `Welcome to Ledgerman!\n\nSet up your account at: ${appUrl}\n\n— Ledgerman Support`;
     el.innerHTML = `
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-top:8px">
