@@ -325,6 +325,22 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
     padding: 24px;
 }
 #detailPanel.open { right: 0; }
+
+/* ── Create Company Modal ───────────────────────────────────────── */
+#createCompanyPanel {
+    position: fixed;
+    top: 0; right: -100%;
+    width: min(480px, 100vw);
+    height: 100vh;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    z-index: 200;
+    overflow-y: auto;
+    transition: right .3s;
+    padding: 24px;
+}
+#createCompanyPanel.open { right: 0; }
+
 .detail-backdrop {
     position: fixed; inset: 0;
     background: rgba(0,0,0,.5);
@@ -475,7 +491,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div data-section="companies" style="display:none">
             <div class="flex-between mb-1" style="margin-bottom:16px">
                 <h2 style="font-size:1.25rem">All Companies</h2>
-                <button class="btn btn-primary btn-sm" onclick="refreshCompanies()">↻ Refresh</button>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary btn-sm" onclick="openCreateCompanyModal()">+ Create Company</button>
+                    <button class="btn btn-primary btn-sm" onclick="refreshCompanies()">↻ Refresh</button>
+                </div>
             </div>
             <div class="search-box" style="margin-bottom:12px">
                 <input type="text" id="companySearch" placeholder="Search by name or ID…" oninput="filterCompanies()">
@@ -621,6 +640,58 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <button class="btn btn-secondary btn-sm" onclick="closeDetail()">✕ Close</button>
     </div>
     <div id="detailContent"><div class="empty">Loading…</div></div>
+</div>
+
+<!-- ── CREATE COMPANY MODAL ────────────────────────────────── -->
+<div class="detail-backdrop" id="createCompanyBackdrop" onclick="closeCreateCompanyModal()"></div>
+<div id="createCompanyPanel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h3>+ Create Company</h3>
+        <button class="btn btn-secondary btn-sm" onclick="closeCreateCompanyModal()">✕ Close</button>
+    </div>
+    <div id="createCompanyForm" style="display:block">
+        <div class="form-group">
+            <label for="createCompanyName">Company Name *</label>
+            <input type="text" id="createCompanyName" placeholder="e.g. Laurence Construction" required>
+        </div>
+        <div class="form-group">
+            <label for="createCompanyPassword">Admin Password *</label>
+            <input type="password" id="createCompanyPassword" placeholder="Strong password (8+ chars)" required>
+        </div>
+        <div class="form-group">
+            <label for="createCompanyPasswordConfirm">Confirm Password *</label>
+            <input type="password" id="createCompanyPasswordConfirm" placeholder="Repeat password" required>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:24px">
+            <button class="btn btn-primary btn-block" onclick="submitCreateCompany()" id="createCompanySubmitBtn">Create Company</button>
+            <button class="btn btn-secondary btn-block" onclick="closeCreateCompanyModal()">Cancel</button>
+        </div>
+        <div id="createCompanyError" class="form-error" style="display:none;margin-top:12px"></div>
+    </div>
+    <div id="createCompanySuccess" style="display:none">
+        <div style="background:var(--success);color:#fff;padding:16px;border-radius:8px;margin-bottom:16px">
+            <strong>✓ Company Created Successfully!</strong>
+        </div>
+        <div class="form-group">
+            <label>Company ID</label>
+            <input type="text" id="createCompanySuccessId" readonly style="background:var(--bg3)">
+        </div>
+        <div class="form-group">
+            <label>Company Name</label>
+            <input type="text" id="createCompanySuccessName" readonly style="background:var(--bg3)">
+        </div>
+        <div class="form-group">
+            <label>Admin Password</label>
+            <input type="text" id="createCompanySuccessPassword" readonly style="background:var(--bg3)">
+        </div>
+        <div class="form-group">
+            <label>Created At</label>
+            <input type="text" id="createCompanySuccessCreated" readonly style="background:var(--bg3)">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:24px">
+            <button class="btn btn-primary btn-block" onclick="closeCreateCompanyModal()">Done</button>
+        </div>
+    </div>
 </div>
 
 <!-- ── TOAST ───────────────────────────────────────────────── -->
@@ -901,6 +972,86 @@ async function openDetail(companyId) {
 function closeDetail() {
     document.getElementById('detailPanel').classList.remove('open');
     document.getElementById('detailBackdrop').classList.remove('active');
+}
+
+// ── Create Company Modal ───────────────────────────────────────────
+function openCreateCompanyModal() {
+    document.getElementById('createCompanyPanel').classList.add('open');
+    document.getElementById('createCompanyBackdrop').classList.add('active');
+    document.getElementById('createCompanyForm').style.display = 'block';
+    document.getElementById('createCompanySuccess').style.display = 'none';
+    document.getElementById('createCompanyError').style.display = 'none';
+    // Clear form
+    document.getElementById('createCompanyName').value = '';
+    document.getElementById('createCompanyPassword').value = '';
+    document.getElementById('createCompanyPasswordConfirm').value = '';
+    document.getElementById('createCompanySubmitBtn').disabled = false;
+    document.getElementById('createCompanySubmitBtn').textContent = 'Create Company';
+}
+
+function closeCreateCompanyModal() {
+    document.getElementById('createCompanyPanel').classList.remove('open');
+    document.getElementById('createCompanyBackdrop').classList.remove('active');
+}
+
+async function submitCreateCompany() {
+    const name = document.getElementById('createCompanyName').value.trim();
+    const pwd = document.getElementById('createCompanyPassword').value;
+    const pwdConfirm = document.getElementById('createCompanyPasswordConfirm').value;
+    const errorEl = document.getElementById('createCompanyError');
+    const submitBtn = document.getElementById('createCompanySubmitBtn');
+
+    // Validate
+    if (!name) {
+        errorEl.textContent = 'Company name is required.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    if (!pwd) {
+        errorEl.textContent = 'Password is required.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    if (pwd.length < 8) {
+        errorEl.textContent = 'Password must be at least 8 characters.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    if (pwd !== pwdConfirm) {
+        errorEl.textContent = 'Passwords do not match.';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    errorEl.style.display = 'none';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating…';
+
+    try {
+        const result = await apiFetch('/api/superadmin/companies', {
+            method: 'POST',
+            body: JSON.stringify({ name, adminPassword: pwd })
+        });
+
+        // Show success screen
+        document.getElementById('createCompanyForm').style.display = 'none';
+        document.getElementById('createCompanySuccess').style.display = 'block';
+        document.getElementById('createCompanySuccessId').value = result.companyId;
+        document.getElementById('createCompanySuccessName').value = result.name;
+        document.getElementById('createCompanySuccessPassword').value = pwd;
+        document.getElementById('createCompanySuccessCreated').value = formatDate(result.createdAt);
+
+        // Refresh companies list
+        loadCompanies();
+        loadOverview();
+
+        toast('Company created successfully!', 'success');
+    } catch(e) {
+        errorEl.textContent = 'Creation failed: ' + e.message;
+        errorEl.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Company';
+    }
 }
 
 async function deleteCompany(id, name) {
