@@ -713,15 +713,24 @@ function toast(msg, type) {
     t._timer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-async function apiFetch(path, options) {
+async function apiFetch(path, options, timeoutMs) {
     options = options || {};
+    timeoutMs = timeoutMs || 30000; // 30 second default timeout
     const headers = Object.assign({ 'Content-Type': 'application/json', 'X-Superadmin-Key': _key }, options.headers || {});
-    const res = await fetch(API + path, Object.assign({}, options, { headers }));
-    if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error || 'HTTP ' + res.status);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        const res = await fetch(API + path, Object.assign({}, options, { headers, signal: controller.signal }));
+        if (!res.ok) {
+            const j = await res.json().catch(() => ({}));
+            throw new Error(j.error || 'HTTP ' + res.status);
+        }
+        return await res.json();
+    } finally {
+        clearTimeout(timeoutId);
     }
-    return res.json();
 }
 
 function formatDate(iso) {
@@ -759,7 +768,22 @@ document.getElementById('loginForm').onsubmit = async function(e) {
     } catch(err) {
         _key = '';
         btn.disabled = false; btn.textContent = 'Access Console';
-        errEl.textContent = err.message === 'Super-admin access denied' ? 'Invalid API key.' : 'Connection failed: ' + err.message;
+
+        // Provide context-specific error messages
+        let errorMsg = 'Connection failed';
+        if (err.name === 'AbortError') {
+            errorMsg = 'Request timed out. Network may be slow. Try again.';
+        } else if (err.message.includes('Super-admin access denied')) {
+            errorMsg = 'Invalid API key.';
+        } else if (err.message.includes('Failed to fetch')) {
+            errorMsg = 'Network error. Check connection and try again.';
+        } else if (err.message.includes('HTTP 403')) {
+            errorMsg = 'Access denied. Invalid API key.';
+        } else if (err.message.includes('HTTP')) {
+            errorMsg = 'Server error: ' + err.message;
+        }
+
+        errEl.textContent = errorMsg;
         errEl.style.display = 'block';
     }
 };
