@@ -282,6 +282,28 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
 .btn-sm { padding: 5px 10px; font-size: .8rem; }
 .btn-block { width: 100%; justify-content: center; padding: 12px; }
 
+/* ── Password Toggle ────────────────────────────────────────────── */
+.password-field-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.password-toggle {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 6px;
+    transition: color .2s;
+}
+.password-toggle:hover {
+    color: var(--primary);
+}
+
 /* ── Diagnostics ────────────────────────────────────────────────── */
 .diag-item {
     display: flex;
@@ -409,7 +431,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <form id="loginForm">
             <div class="form-group" style="text-align:left">
                 <label>API Key</label>
-                <input type="password" id="apiKeyInput" placeholder="Enter super-admin key" autocomplete="off" required>
+                <div class="password-field-wrap">
+                    <input type="password" id="apiKeyInput" placeholder="Enter super-admin key" autocomplete="off" required style="padding-right:40px">
+                    <button type="button" class="password-toggle" data-toggle="apiKeyInput">Show</button>
+                </div>
             </div>
             <div id="loginError" style="display:none;color:var(--danger);font-size:.85rem;margin-bottom:12px;text-align:left"></div>
             <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Access Console</button>
@@ -656,11 +681,17 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         </div>
         <div class="form-group">
             <label for="createCompanyPassword">Admin Password *</label>
-            <input type="password" id="createCompanyPassword" placeholder="Strong password (8+ chars)" required>
+            <div class="password-field-wrap">
+            <input type="password" id="createCompanyPassword" placeholder="Strong password (8+ chars)" required style="padding-right:40px">
+            <button type="button" class="password-toggle" data-toggle="createCompanyPassword">Show</button>
+        </div>
         </div>
         <div class="form-group">
             <label for="createCompanyPasswordConfirm">Confirm Password *</label>
-            <input type="password" id="createCompanyPasswordConfirm" placeholder="Repeat password" required>
+            <div class="password-field-wrap">
+            <input type="password" id="createCompanyPasswordConfirm" placeholder="Repeat password" required style="padding-right:40px">
+            <button type="button" class="password-toggle" data-toggle="createCompanyPasswordConfirm">Show</button>
+        </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:24px">
             <button class="btn btn-primary btn-block" onclick="submitCreateCompany()" id="createCompanySubmitBtn">Create Company</button>
@@ -1435,6 +1466,27 @@ function esc(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
+
+// ── Password Toggle Visibility ───────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleButtons = document.querySelectorAll('.password-toggle');
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const fieldId = this.getAttribute('data-toggle');
+            const field = document.getElementById(fieldId);
+            if (field) {
+                if (field.type === 'password') {
+                    field.type = 'text';
+                    this.textContent = 'Hide';
+                } else {
+                    field.type = 'password';
+                    this.textContent = 'Show';
+                }
+            }
+        });
+    });
+});
 </body>
 </html>
 <!-- Fix: Render redeploy trigger -->
