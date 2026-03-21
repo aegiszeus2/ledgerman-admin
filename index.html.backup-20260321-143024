@@ -428,7 +428,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         </div>
         <h1>LittleShield</h1>
         <p class="subtitle">Ledgerman Super Admin Console</p>
-        <div id="loginForm">
+        <form id="loginForm">
             <div class="form-group" style="text-align:left">
                 <label>API Key</label>
                 <div class="password-field-wrap">
@@ -437,8 +437,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
                 </div>
             </div>
             <div id="loginError" style="display:none;color:var(--danger);font-size:.85rem;margin-bottom:12px;text-align:left"></div>
-            <button type="button" class="btn btn-primary btn-block" id="loginBtn" onclick="handleLogin()">Access Console</button>
-        </div>
+            <button type="button" class="btn btn-primary btn-block" id="loginBtn" onclick="handleAdminLogin()">Access Console</button>
+        </form>
         <p style="margin-top:16px;font-size:.75rem;color:var(--text2)">
             Key location: <code style="background:var(--bg3);padding:2px 6px;border-radius:4px">ledgerman-backend/.superadmin_key</code>
         </p>
@@ -883,14 +883,14 @@ async function handleLogin() {
     }
 }
 
-// Removed duplicate addEventListener; onclick="handleLogin()" is sufficient
+// Login button click handler
+document.getElementById('loginBtn').onclick = handleLogin;
 
-// Support Enter key for password input
-document.getElementById('apiKeyInput').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        handleLogin();
-    }
-});
+// Form submit handler (for Enter key support)
+document.getElementById('loginForm').onsubmit = async function(e) {
+    e.preventDefault();
+    handleLogin();
+};
 
 // Auto-login if key in localStorage
 window.addEventListener('load', function() {
