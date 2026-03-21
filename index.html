@@ -715,14 +715,21 @@ function toast(msg, type) {
 
 async function apiFetch(path, options, timeoutMs) {
     options = options || {};
-    timeoutMs = timeoutMs || 30000; // 30 second default timeout
+    timeoutMs = timeoutMs || 60000; // 60 second timeout (mobile networks need more time)
     const headers = Object.assign({ 'Content-Type': 'application/json', 'X-Superadmin-Key': _key }, options.headers || {});
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-        const res = await fetch(API + path, Object.assign({}, options, { headers, signal: controller.signal }));
+        // Add cache-busting query param for GET requests
+        let url = API + path;
+        if (!options.method || options.method === 'GET') {
+            const sep = path.includes('?') ? '&' : '?';
+            url = API + path + sep + 'v=' + Date.now();
+        }
+
+        const res = await fetch(url, Object.assign({}, options, { headers, signal: controller.signal }));
         if (!res.ok) {
             const j = await res.json().catch(() => ({}));
             throw new Error(j.error || 'HTTP ' + res.status);
@@ -732,7 +739,6 @@ async function apiFetch(path, options, timeoutMs) {
         clearTimeout(timeoutId);
     }
 }
-
 function formatDate(iso) {
     if (!iso) return '—';
     const d = new Date(iso);
