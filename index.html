@@ -621,17 +621,21 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <div class="card">
                 <div class="card-header"><div class="card-title">Onboard New Customer</div></div>
                 <p class="text-sm text-muted" style="margin-bottom:14px">
-                    Send a customer a link to set up their Ledgerman account. They will register at the app URL.
+                    Generate a pre-filled login link for a customer. They click the link and log in instantly.
                 </p>
                 <div class="form-group">
-                    <label>App URL (Netlify)</label>
+                    <label>App URL</label>
                     <input type="text" id="appUrlInput" value="https://ledgerman.org" placeholder="https://your-app.netlify.app">
                 </div>
                 <div class="form-group">
                     <label>Customer Company Name</label>
-                    <input type="text" id="newCustomerName" placeholder="e.g. Apex Contracting Inc.">
+                    <input type="text" id="newCustomerName" placeholder="e.g. Laurence Construction">
                 </div>
-                <button class="btn btn-primary" onclick="generateOnboardLink()">Generate Onboard Link</button>
+                <div class="form-group">
+                    <label>Temporary Password</label>
+                    <input type="text" id="newCustomerPassword" placeholder="e.g. Temp123!">
+                </div>
+                <button class="btn btn-primary" onclick="generateOnboardLink()">Generate Invitation Link</button>
                 <div id="onboardResult" style="margin-top:12px"></div>
             </div>
 
@@ -1414,20 +1418,37 @@ async function runGlobalPing() {
 function generateOnboardLink() {
     const appUrl = document.getElementById('appUrlInput').value.trim();
     const name = document.getElementById('newCustomerName').value.trim();
+    const password = document.getElementById('newCustomerPassword').value.trim();
     const el = document.getElementById('onboardResult');
+
     if (!appUrl) { toast('Enter the app URL first.', 'error'); return; }
-    const msg = name
-        ? `Hi ${name},\n\nYour Ledgerman account is ready to set up!\n\nClick the link below to get started:\n${appUrl}\n\n1. Click "Get Started"\n2. Enter your company name: ${name}\n3. Choose an admin password\n4. You're in!\n\nQuestions? Reply to this email.\n\n— Ledgerman Support\nlucastheofilou@gmail.com`
-        : `Welcome to Ledgerman!\n\nSet up your account at: ${appUrl}\n\n— Ledgerman Support`;
+    if (!name) { toast('Enter customer company name.', 'error'); return; }
+    if (!password) { toast('Enter temporary password.', 'error'); return; }
+
+    // Generate the invitation URL with auto-fill params
+    const inviteUrl = `${appUrl}?company=${encodeURIComponent(name)}&password=${encodeURIComponent(password)}`;
+
+    // Generate the invitation message
+    const msg = `Hi ${name},\n\nYour Ledgerman account is ready!\n\nClick this link to access your account:\n${inviteUrl}\n\nYour login details are pre-filled. Just click "Login" to get started.\n\nIf you want to change your password, you can do so in Settings after logging in.\n\nQuestions? Email us at lucastheofilou@gmail.com\n\n— Ledgerman Support`;
+
     el.innerHTML = `
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-top:8px">
             <div class="flex-between mb-1">
-                <span class="text-sm text-muted">Onboarding Message</span>
-                <button class="btn btn-secondary btn-sm" onclick="copyOnboard()">Copy</button>
+                <span class="text-sm text-muted">Invitation Link</span>
+                <button class="btn btn-secondary btn-sm" onclick="copyToClipboard('${inviteUrl.replace(/'/g, "\\'")}')">📋 Copy Link</button>
+            </div>
+            <input type="text" readonly value="${inviteUrl}" style="width:100%;padding:8px;border:none;border-radius:var(--radius);background:var(--bg1);color:var(--text);font-size:.85rem;font-family:monospace;margin-bottom:12px;cursor:pointer" onclick="this.select();document.execCommand('copy')" title="Click to select and copy">
+            <div class="flex-between mb-1">
+                <span class="text-sm text-muted">Invitation Message</span>
+                <button class="btn btn-secondary btn-sm" onclick="copyOnboard()">📧 Copy Message</button>
             </div>
             <pre id="onboardMsg" style="font-size:.8rem;white-space:pre-wrap;font-family:inherit;color:var(--text)">${esc(msg)}</pre>
         </div>
     `;
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => toast('Link copied to clipboard!', 'success')).catch(() => toast('Failed to copy.', 'error'));
 }
 
 function copyOnboard() {
