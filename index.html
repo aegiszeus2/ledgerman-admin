@@ -1020,7 +1020,72 @@ async function openDetail(companyId) {
                 `).join('') : '<p class="text-muted text-sm">No activity yet.</p>'}
             </div>
 
+            <div id="detailInfoSection">
+                <div class="card" style="margin-bottom:12px">
+                    <div class="card-title mb-1">Company Settings</div>
+                    <div class="text-sm">
+                        <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Company Name</span><span id="detailCompanyName">${esc(d.settings.companyName || d.name || '—')}</span></div>
+                        <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Email</span><span id="detailEmail">${esc(d.settings.email || '—')}</span></div>
+                        <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Phone</span><span id="detailPhone">${esc(d.settings.phone || '—')}</span></div>
+                        <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Address</span><span id="detailAddress">${esc(d.settings.address || '—')}</span></div>
+                        <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">City</span><span id="detailCity">${esc(d.settings.city || '—')}</span></div>
+                        <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Province</span><span id="detailProvince">${esc(d.settings.province || '—')}</span></div>
+                        <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Postal Code</span><span id="detailPostalCode">${esc(d.settings.postalCode || '—')}</span></div>
+                        <div class="flex-between"><span class="text-muted">HST Number</span><span id="detailHstNumber">${esc(d.settings.hstNumber || '—')}</span></div>
+                    </div>
+                </div>
+                <div id="detailEditConfirmation" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px">
+                    <div style="margin-bottom:12px;font-size:.9rem">
+                        <strong>Edit ${esc(d.settings.companyName || d.name || 'Company')}?</strong><br>
+                        <span class="text-muted text-sm">Changes apply immediately. Review before confirming.</span>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn btn-secondary btn-sm" onclick="cancelDetailEdit()">Cancel</button>
+                        <button class="btn btn-gold btn-sm" onclick="confirmDetailEdit('${d.id}')">Confirm Edit</button>
+                    </div>
+                </div>
+                <div id="detailEditFields" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px">
+                    <div class="form-group">
+                        <label class="label-sm">Company Name</label>
+                        <input type="text" id="editCompanyName" class="form-control" value="${esc(d.settings.companyName || d.name || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label class="label-sm">Email</label>
+                        <input type="email" id="editEmail" class="form-control" value="${esc(d.settings.email || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label class="label-sm">Phone</label>
+                        <input type="tel" id="editPhone" class="form-control" value="${esc(d.settings.phone || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label class="label-sm">Address</label>
+                        <input type="text" id="editAddress" class="form-control" value="${esc(d.settings.address || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label class="label-sm">City</label>
+                        <input type="text" id="editCity" class="form-control" value="${esc(d.settings.city || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label class="label-sm">Province</label>
+                        <input type="text" id="editProvince" class="form-control" value="${esc(d.settings.province || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label class="label-sm">Postal Code</label>
+                        <input type="text" id="editPostalCode" class="form-control" value="${esc(d.settings.postalCode || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label class="label-sm">HST Number</label>
+                        <input type="text" id="editHstNumber" class="form-control" value="${esc(d.settings.hstNumber || '')}">
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn btn-secondary btn-sm" onclick="cancelDetailEdit()">Cancel</button>
+                        <button class="btn btn-gold btn-sm" onclick="saveDetailEdit('${d.id}')">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+
             <div style="display:flex;flex-direction:column;gap:8px">
+                <button class="btn btn-primary" id="detailEditBtn" onclick="initDetailEdit()">🔒 Edit Details</button>
                 <button class="btn btn-secondary" onclick="runDiagnosticsFor('${d.id}')">🛡️ Run LittleShield Diagnostics</button>
                 <button class="btn btn-danger" onclick="deleteCompany('${d.id}','${esc(d.name)}')">🗑️ Delete Company & All Data</button>
             </div>
@@ -1123,7 +1188,85 @@ async function deleteCompany(id, name) {
         closeDetail();
         loadCompanies();
         loadOverview();
+    }
+// ── Company Detail Edit Functions ──────────────────────────────────
+function initDetailEdit() {
+    // Show confirmation prompt
+    document.getElementById('detailEditConfirmation').style.display = 'block';
+    document.getElementById('detailEditBtn').style.display = 'none';
+}
+
+function cancelDetailEdit() {
+    // Hide edit UI
+    document.getElementById('detailEditConfirmation').style.display = 'none';
+    document.getElementById('detailEditFields').style.display = 'none';
+    document.getElementById('detailEditBtn').style.display = 'block';
+}
+
+function confirmDetailEdit(companyId) {
+    // User confirmed edit intent — show editable fields
+    document.getElementById('detailEditConfirmation').style.display = 'none';
+    document.getElementById('detailEditFields').style.display = 'block';
+}
+
+async function saveDetailEdit(companyId) {
+    const updates = {
+        companyName: document.getElementById('editCompanyName').value.trim(),
+        email: document.getElementById('editEmail').value.trim(),
+        phone: document.getElementById('editPhone').value.trim(),
+        address: document.getElementById('editAddress').value.trim(),
+        city: document.getElementById('editCity').value.trim(),
+        province: document.getElementById('editProvince').value.trim(),
+        postalCode: document.getElementById('editPostalCode').value.trim(),
+        hstNumber: document.getElementById('editHstNumber').value.trim(),
+    };
+
+    // Validate required fields
+    if (!updates.companyName) {
+        toast('Company name is required', 'error');
+        return;
+    }
+
+    document.getElementById('detailEditBtn').disabled = true;
+    
+    try {
+        const result = await apiFetch(
+            '/api/superadmin/companies/' + companyId,
+            {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json', 'X-Superadmin-Key': getSuperadminKey()},
+                body: JSON.stringify(updates)
+            }
+        );
+
+        if (result.success) {
+            toast('Company details updated successfully', 'success');
+            
+            // Update display with new values
+            document.getElementById('detailCompanyName').textContent = esc(updates.companyName);
+            document.getElementById('detailEmail').textContent = esc(updates.email || '—');
+            document.getElementById('detailPhone').textContent = esc(updates.phone || '—');
+            document.getElementById('detailAddress').textContent = esc(updates.address || '—');
+            document.getElementById('detailCity').textContent = esc(updates.city || '—');
+            document.getElementById('detailProvince').textContent = esc(updates.province || '—');
+            document.getElementById('detailPostalCode').textContent = esc(updates.postalCode || '—');
+            document.getElementById('detailHstNumber').textContent = esc(updates.hstNumber || '—');
+            
+            // Also update title if company name changed
+            document.getElementById('detailTitle').textContent = updates.companyName;
+            
+            // Hide edit UI and restore view
+            cancelDetailEdit();
+        } else {
+            toast('Update failed: ' + (result.error || 'Unknown error'), 'error');
+        }
     } catch(e) {
+        toast('Update error: ' + e.message, 'error');
+    } finally {
+        document.getElementById('detailEditBtn').disabled = false;
+    }
+}
+ catch(e) {
         toast('Delete failed: ' + e.message, 'error');
     }
 }
