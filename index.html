@@ -428,7 +428,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         </div>
         <h1>LittleShield</h1>
         <p class="subtitle">Ledgerman Super Admin Console</p>
-        <div id="loginForm">
+        <form id="loginForm">
             <div class="form-group" style="text-align:left">
                 <label>API Key</label>
                 <div class="password-field-wrap">
@@ -437,8 +437,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
                 </div>
             </div>
             <div id="loginError" style="display:none;color:var(--danger);font-size:.85rem;margin-bottom:12px;text-align:left"></div>
-            <button type="button" class="btn btn-primary btn-block" id="loginBtn" onclick="handleLogin()">Access Console</button>
-        </div>
+            <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Access Console</button>
+        </form>
         <p style="margin-top:16px;font-size:.75rem;color:var(--text2)">
             Key location: <code style="background:var(--bg3);padding:2px 6px;border-radius:4px">ledgerman-backend/.superadmin_key</code>
         </p>
@@ -787,7 +787,9 @@ function timeAgo(iso) {
     return Math.floor(hrs / 24) + 'd ago';
 }
 
-async function handleAdminLogin() {
+// ── Login ────────────────────────────────────────────────────
+document.getElementById('loginForm').onsubmit = async function(e) {
+    e.preventDefault();
     const key = document.getElementById('apiKeyInput').value.trim();
     const btn = document.getElementById('loginBtn');
     const errEl = document.getElementById('loginError');
@@ -803,94 +805,25 @@ async function handleAdminLogin() {
     } catch(err) {
         _key = '';
         btn.disabled = false; btn.textContent = 'Access Console';
-        errEl.textContent = err.message === 'Super-admin access denied' ? 'Invalid API key.' : 'Connection failed: ' + err.message;
-        errEl.style.display = 'block';
-    }
-}
 
-// ── Login ────────────────────────────────────────────────────
-async function handleLogin() {
-    const key = document.getElementById('apiKeyInput').value.trim();
-    const btn = document.getElementById('loginBtn');
-    const errEl = document.getElementById('loginError');
-    
-    console.log('[AUTH] Form submitted. Key length:', key.length);
-    
-    // Validate key format before sending
-    if (!key) {
-        console.warn('[AUTH] Key is empty');
-        errEl.textContent = 'API key cannot be empty';
-        errEl.style.display = 'block';
-        return;
-    }
-    
-    if (key.length < 20) {
-        console.warn('[AUTH] Key too short. Length:', key.length);
-        errEl.textContent = 'Invalid API key format (too short)';
-        errEl.style.display = 'block';
-        return;
-    }
-    
-    errEl.style.display = 'none';
-    btn.disabled = true; 
-    btn.textContent = 'Connecting…';
-    console.log('[AUTH] Starting auth request with key length:', key.length);
-    
-    try {
-        _key = key;
-        console.log('[AUTH] _key set. Calling apiFetch...');
-        const response = await apiFetch('/api/superadmin/auth', { method: 'POST' });
-        console.log('[AUTH] Auth successful. Response:', response);
-        
-        console.log('[AUTH] Setting localStorage...');
-        localStorage.setItem('ls_admin_key', key);
-        console.log('[AUTH] localStorage set successfully');
-        
-        console.log('[AUTH] Hiding login screen...');
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('app').classList.add('visible');
-        console.log('[AUTH] App visible. Initializing dashboard...');
-        
-        initDashboard();
-        console.log('[AUTH] Dashboard initialized. Auth complete.');
-    } catch(err) {
-        console.error('[AUTH] Error during authentication:', err.name, err.message);
-        _key = '';
-        btn.disabled = false; 
-        btn.textContent = 'Access Console';
-
+        // Provide context-specific error messages
         let errorMsg = 'Connection failed';
         if (err.name === 'AbortError') {
-            errorMsg = 'Request timed out (60s). Network may be slow. Try again.';
-            console.warn('[AUTH] Timeout error');
+            errorMsg = 'Request timed out. Network may be slow. Try again.';
         } else if (err.message.includes('Super-admin access denied')) {
-            errorMsg = 'Invalid API key. Check the key and try again.';
-            console.warn('[AUTH] Access denied - invalid key');
+            errorMsg = 'Invalid API key.';
         } else if (err.message.includes('Failed to fetch')) {
-            errorMsg = 'Network error. Check your connection and try again.';
-            console.warn('[AUTH] Fetch error');
+            errorMsg = 'Network error. Check connection and try again.';
         } else if (err.message.includes('HTTP 403')) {
-            errorMsg = 'Invalid API key (403). Check the key and try again.';
-            console.warn('[AUTH] 403 error');
+            errorMsg = 'Access denied. Invalid API key.';
         } else if (err.message.includes('HTTP')) {
             errorMsg = 'Server error: ' + err.message;
-            console.warn('[AUTH] HTTP error:', err.message);
         }
 
-        console.log('[AUTH] Displaying error:', errorMsg);
         errEl.textContent = errorMsg;
         errEl.style.display = 'block';
     }
-}
-
-// Removed duplicate addEventListener; onclick="handleLogin()" is sufficient
-
-// Support Enter key for password input
-document.getElementById('apiKeyInput').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        handleLogin();
-    }
-});
+};
 
 // Auto-login if key in localStorage
 window.addEventListener('load', function() {
