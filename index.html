@@ -1188,7 +1188,11 @@ async function deleteCompany(id, name) {
         closeDetail();
         loadCompanies();
         loadOverview();
+    } catch(e) {
+        toast('Delete failed: ' + e.message, 'error');
     }
+}
+
 // ── Company Detail Edit Functions ──────────────────────────────────
 function initDetailEdit() {
     // Show confirmation prompt
@@ -1264,10 +1268,6 @@ async function saveDetailEdit(companyId) {
         toast('Update error: ' + e.message, 'error');
     } finally {
         document.getElementById('detailEditBtn').disabled = false;
-    }
-}
- catch(e) {
-        toast('Delete failed: ' + e.message, 'error');
     }
 }
 
