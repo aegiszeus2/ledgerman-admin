@@ -1284,7 +1284,7 @@ async function saveDetailEdit(companyId) {
             '/api/superadmin/companies/' + companyId,
             {
                 method: 'PATCH',
-                headers: {'Content-Type': 'application/json', 'X-Superadmin-Key': getSuperadminKey()},
+                headers: {'Content-Type': 'application/json', 'X-Superadmin-Key': _key},
                 body: JSON.stringify(updates)
             }
         );
