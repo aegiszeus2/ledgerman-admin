@@ -636,50 +636,80 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div data-section="support" style="display:none">
             <div style="margin-bottom:20px">
                 <h2 style="font-size:1.25rem;margin-bottom:4px">Customer Support</h2>
-                <p class="text-muted text-sm">View company data, generate support links, and manage customers.</p>
+                <p class="text-muted text-sm">Create customer accounts and send branded invitations.</p>
             </div>
 
-            <!-- ── INVITE COMPANY ──────────────────────────────── -->
+            <!-- ── UNIFIED INVITE & ONBOARD ──────────────────────────────── -->
             <div class="card">
-                <div class="card-header"><div class="card-title">✉️ Invite Company</div></div>
+                <div class="card-header"><div class="card-title">➕ Create Account & Send Invite</div></div>
                 <p class="text-sm text-muted" style="margin-bottom:14px">
-                    Enter a company email — we'll pull their logo, extract brand colors, and generate a branded sales pitch.
+                    Create a new customer account with auto-generated password. We'll send a branded pitch email with a pre-filled login link.
                 </p>
-                <div class="form-group">
-                    <label>Company Email</label>
-                    <input type="email" id="inviteEmail" placeholder="e.g. john@apexcontracting.com">
+                <div id="unifiedInviteForm">
+                    <div class="form-group">
+                        <label>Company Name *</label>
+                        <input type="text" id="unifiedCompanyName" placeholder="e.g. Apex Contracting">
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Name (optional)</label>
+                        <input type="text" id="unifiedContactName" placeholder="e.g. John Smith">
+                    </div>
+                    <div class="form-group">
+                        <label>Company Email *</label>
+                        <input type="email" id="unifiedEmail" placeholder="e.g. john@apexcontracting.com">
+                    </div>
+                    <button class="btn btn-primary" onclick="createAndInviteCompany()" id="unifiedInviteBtn">✉️ Create Account & Send Invite</button>
+                    <div id="unifiedError" style="display:none;margin-top:12px;padding:12px;background:var(--danger)20;border:1px solid var(--danger);border-radius:var(--radius);color:var(--danger)"></div>
                 </div>
-                <div class="form-group">
-                    <label>Contact Name (optional)</label>
-                    <input type="text" id="inviteContactName" placeholder="e.g. John Smith">
+                <div id="unifiedSuccess" style="display:none">
+                    <div style="background:var(--success)20;border:1px solid var(--success);border-radius:var(--radius);padding:16px;margin-bottom:16px">
+                        <strong>✅ Account Created!</strong> Password has been auto-generated. 30-day trial starts on first login.
+                    </div>
+                    <div class="form-group">
+                        <label>Username (Company Name)</label>
+                        <div style="display:flex;gap:8px">
+                            <input type="text" id="unifiedSuccessCompanyName" readonly style="background:var(--bg3);flex:1">
+                            <button class="btn btn-secondary btn-sm" onclick="copyToClipboard(document.getElementById('unifiedSuccessCompanyName').value)">📋 Copy</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Auto-Generated Password</label>
+                        <div style="display:flex;gap:8px">
+                            <input type="text" id="unifiedSuccessPassword" readonly style="background:var(--bg3);flex:1">
+                            <button class="btn btn-secondary btn-sm" onclick="copyToClipboard(document.getElementById('unifiedSuccessPassword').value)">📋 Copy</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Login URL (Pre-Filled)</label>
+                        <div style="display:flex;gap:8px">
+                            <input type="text" id="unifiedSuccessLoginUrl" readonly style="background:var(--bg3);flex:1;font-size:0.85rem;font-family:monospace">
+                            <button class="btn btn-secondary btn-sm" onclick="copyToClipboard(document.getElementById('unifiedSuccessLoginUrl').value)">📋 Copy</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Trial Status</label>
+                        <input type="text" readonly style="background:var(--bg3)" value="30-day trial (starts on first login)">
+                    </div>
+                    <div style="background:var(--bg2);padding:12px;border-radius:8px;margin:16px 0;font-size:0.85rem;border-left:4px solid var(--info)">
+                        <strong>🎯 Next Steps:</strong><br>
+                        1. Copy the login URL above and share it with the customer<br>
+                        2. Or send them the branded pitch email (see below)<br>
+                        3. They click the link and log in — no password entry needed<br>
+                        4. 30-day trial begins on their first login
+                    </div>
+                    <div class="form-group" style="margin-top:16px">
+                        <label><strong>📧 Branded Pitch Email</strong></label>
+                        <div id="unifiedSuccessPitchPreview" style="background:#fff;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);max-height:500px;overflow-y:auto;margin-top:8px"></div>
+                        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+                            <button class="btn btn-primary" onclick="copyUnifiedPitchHtml()">📋 Copy HTML</button>
+                            <button class="btn btn-secondary" onclick="copyUnifiedPitchPlain()">📝 Copy Plain Text</button>
+                            <a id="unifiedEmailLink" class="btn btn-secondary" href="#" target="_blank">📧 Open in Email Client</a>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:24px">
+                        <button class="btn btn-secondary btn-block" onclick="resetUnifiedInvite()">+ Invite Another Company</button>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Company Name</label>
-                    <input type="text" id="inviteCompanyName" placeholder="e.g. Apex Contracting">
-                </div>
-                <button class="btn btn-primary" onclick="generateInvite()" id="inviteBtn">🎨 Generate Branded Pitch</button>
-                <div id="invitePreview" style="margin-top:16px"></div>
-            </div>
-
-            <div class="card">
-                <div class="card-header"><div class="card-title">Onboard New Customer</div></div>
-                <p class="text-sm text-muted" style="margin-bottom:14px">
-                    Generate a pre-filled login link for a customer. They click the link and log in instantly.
-                </p>
-                <div class="form-group">
-                    <label>App URL</label>
-                    <input type="text" id="appUrlInput" value="https://ledgerman.org" placeholder="https://your-app.netlify.app">
-                </div>
-                <div class="form-group">
-                    <label>Customer Company Name</label>
-                    <input type="text" id="newCustomerName" placeholder="e.g. Laurence Construction">
-                </div>
-                <div class="form-group">
-                    <label>Temporary Password</label>
-                    <input type="text" id="newCustomerPassword" placeholder="e.g. Temp123!">
-                </div>
-                <button class="btn btn-primary" onclick="generateOnboardLink()">Generate Invitation Link</button>
-                <div id="onboardResult" style="margin-top:12px"></div>
             </div>
 
             <div class="card">
@@ -726,20 +756,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <label for="createCompanyName">Company Name *</label>
             <input type="text" id="createCompanyName" placeholder="e.g. Laurence Construction" required>
         </div>
-        <div class="form-group">
-            <label for="createCompanyPassword">Admin Password *</label>
-            <div class="password-field-wrap">
-            <input type="password" id="createCompanyPassword" placeholder="Strong password (8+ chars)" required style="padding-right:40px">
-            <button type="button" class="password-toggle" data-toggle="createCompanyPassword">Show</button>
-        </div>
-        </div>
-        <div class="form-group">
-            <label for="createCompanyPasswordConfirm">Confirm Password *</label>
-            <div class="password-field-wrap">
-            <input type="password" id="createCompanyPasswordConfirm" placeholder="Repeat password" required style="padding-right:40px">
-            <button type="button" class="password-toggle" data-toggle="createCompanyPasswordConfirm">Show</button>
-        </div>
-        </div>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin:16px 0">Password will be auto-generated. 30-day trial starts on first login.</p>
         <div style="display:flex;gap:8px;margin-top:24px">
             <button class="btn btn-primary btn-block" onclick="submitCreateCompany()" id="createCompanySubmitBtn">Create Company</button>
             <button class="btn btn-secondary btn-block" onclick="closeCreateCompanyModal()">Cancel</button>
@@ -759,12 +776,25 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <input type="text" id="createCompanySuccessName" readonly style="background:var(--bg3)">
         </div>
         <div class="form-group">
-            <label>Admin Password</label>
-            <input type="text" id="createCompanySuccessPassword" readonly style="background:var(--bg3)">
+            <label>Auto-Generated Admin Password</label>
+            <div style="display:flex;gap:8px">
+                <input type="text" id="createCompanySuccessPassword" readonly style="background:var(--bg3);flex:1">
+                <button class="btn btn-secondary btn-sm" onclick="copyToClipboard(document.getElementById('createCompanySuccessPassword').value)">📋 Copy</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Trial Status</label>
+            <input type="text" id="createCompanySuccessTrial" readonly style="background:var(--bg3)" value="30-day trial (starts on first login)">
         </div>
         <div class="form-group">
             <label>Created At</label>
             <input type="text" id="createCompanySuccessCreated" readonly style="background:var(--bg3)">
+        </div>
+        <div style="background:var(--bg2);padding:12px;border-radius:8px;margin:16px 0;font-size:0.85rem;border-left:4px solid var(--info)">
+            <strong>Next Steps:</strong><br>
+            • Send the company name and auto-generated password to the customer<br>
+            • They can log in at <span id="companyLoginUrl">ledgerman.org</span> with company name and password<br>
+            • 30-day trial begins on their first login
         </div>
         <div style="display:flex;gap:8px;margin-top:24px">
             <button class="btn btn-primary btn-block" onclick="closeCreateCompanyModal()">Done</button>
@@ -1178,8 +1208,6 @@ function openCreateCompanyModal() {
     document.getElementById('createCompanyError').style.display = 'none';
     // Clear form
     document.getElementById('createCompanyName').value = '';
-    document.getElementById('createCompanyPassword').value = '';
-    document.getElementById('createCompanyPasswordConfirm').value = '';
     document.getElementById('createCompanySubmitBtn').disabled = false;
     document.getElementById('createCompanySubmitBtn').textContent = 'Create Company';
 }
@@ -1191,8 +1219,6 @@ function closeCreateCompanyModal() {
 
 async function submitCreateCompany() {
     const name = document.getElementById('createCompanyName').value.trim();
-    const pwd = document.getElementById('createCompanyPassword').value;
-    const pwdConfirm = document.getElementById('createCompanyPasswordConfirm').value;
     const errorEl = document.getElementById('createCompanyError');
     const submitBtn = document.getElementById('createCompanySubmitBtn');
 
@@ -1202,30 +1228,16 @@ async function submitCreateCompany() {
         errorEl.style.display = 'block';
         return;
     }
-    if (!pwd) {
-        errorEl.textContent = 'Password is required.';
-        errorEl.style.display = 'block';
-        return;
-    }
-    if (pwd.length < 8) {
-        errorEl.textContent = 'Password must be at least 8 characters.';
-        errorEl.style.display = 'block';
-        return;
-    }
-    if (pwd !== pwdConfirm) {
-        errorEl.textContent = 'Passwords do not match.';
-        errorEl.style.display = 'block';
-        return;
-    }
 
     errorEl.style.display = 'none';
     submitBtn.disabled = true;
     submitBtn.textContent = 'Creating…';
 
     try {
+        // API auto-generates password
         const result = await apiFetch('/api/superadmin/companies', {
             method: 'POST',
-            body: JSON.stringify({ name, adminPassword: pwd })
+            body: JSON.stringify({ name })
         });
 
         // Show success screen
@@ -1233,14 +1245,19 @@ async function submitCreateCompany() {
         document.getElementById('createCompanySuccess').style.display = 'block';
         document.getElementById('createCompanySuccessId').value = result.companyId;
         document.getElementById('createCompanySuccessName').value = result.name;
-        document.getElementById('createCompanySuccessPassword').value = pwd;
+        document.getElementById('createCompanySuccessPassword').value = result.adminPassword;
         document.getElementById('createCompanySuccessCreated').value = formatDate(result.createdAt);
+
+        // Update trial info
+        if (result.isTrial) {
+            document.getElementById('createCompanySuccessTrial').value = `${result.trialDays}-day trial (starts on first login)`;
+        }
 
         // Refresh companies list
         loadCompanies();
         loadOverview();
 
-        toast('Company created successfully!', 'success');
+        toast('Company created successfully! Password auto-generated.', 'success');
     } catch(e) {
         errorEl.textContent = 'Creation failed: ' + e.message;
         errorEl.style.display = 'block';
@@ -1687,6 +1704,116 @@ function copyInviteHtml() {
 function copyInvitePlain() {
     if (!window._invitePlain) { toast('Generate a pitch first.', 'error'); return; }
     navigator.clipboard.writeText(window._invitePlain).then(function() { toast('Plain text pitch copied!', 'success'); }).catch(function() { toast('Copy failed.', 'error'); });
+}
+
+// ── Unified Invite & Onboard ────────────────────────────────
+async function createAndInviteCompany() {
+    const companyName = document.getElementById('unifiedCompanyName').value.trim();
+    const contactName = document.getElementById('unifiedContactName').value.trim();
+    const email = document.getElementById('unifiedEmail').value.trim();
+    const errorEl = document.getElementById('unifiedError');
+    const btn = document.getElementById('unifiedInviteBtn');
+
+    // Validate
+    if (!companyName) {
+        errorEl.textContent = 'Company name is required.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    if (!email || !email.includes('@')) {
+        errorEl.textContent = 'Valid company email is required.';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    errorEl.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = '⏳ Creating account & generating pitch…';
+
+    try {
+        // 1. Create company via API
+        const result = await apiFetch('/api/superadmin/companies', {
+            method: 'POST',
+            body: JSON.stringify({ name: companyName })
+        });
+
+        const companyId = result.companyId;
+        const password = result.adminPassword;
+
+        // 2. Generate branded pitch email
+        const domain = email.split('@')[1];
+        const logoUrl = 'https://logo.clearbit.com/' + domain;
+        const colors = await extractColorsFromLogo(logoUrl);
+        const primary = colors[0] || '#2563eb';
+        const secondary = colors[1] || '#1e40af';
+        const accent = colors[2] || '#f59e0b';
+        const greeting = contactName ? 'Hi ' + contactName + ',' : 'Hi there,';
+
+        const pitchHtml = buildPitchEmail(greeting, companyName, domain, logoUrl, primary, secondary, accent);
+        const pitchPlain = buildPitchPlain(greeting, companyName);
+
+        // 3. Generate pre-filled login URL
+        const appUrl = 'https://ledgerman.org';
+        const loginUrl = appUrl + '?company=' + encodeURIComponent(companyName) + '&password=' + encodeURIComponent(password);
+
+        // 4. Show success screen
+        document.getElementById('unifiedInviteForm').style.display = 'none';
+        document.getElementById('unifiedSuccess').style.display = 'block';
+        document.getElementById('unifiedSuccessCompanyName').value = companyName;
+        document.getElementById('unifiedSuccessPassword').value = password;
+        document.getElementById('unifiedSuccessLoginUrl').value = loginUrl;
+        document.getElementById('unifiedSuccessPitchPreview').innerHTML = pitchHtml;
+
+        // Store for copy functions
+        window._unifiedPitchHtml = pitchHtml;
+        window._unifiedPitchPlain = pitchPlain;
+        window._unifiedEmail = email;
+
+        // Set up email link
+        const emailLink = document.getElementById('unifiedEmailLink');
+        emailLink.href = 'mailto:' + encodeURIComponent(email) +
+            '?subject=' + encodeURIComponent('Streamline Your Workforce Management — Ledgerman') +
+            '&body=' + encodeURIComponent(pitchPlain);
+
+        // Refresh companies list
+        loadCompanies();
+        loadOverview();
+
+        toast('Account created and ready to invite!', 'success');
+    } catch(e) {
+        errorEl.textContent = 'Failed: ' + e.message;
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = '✉️ Create Account & Send Invite';
+    }
+}
+
+function resetUnifiedInvite() {
+    document.getElementById('unifiedInviteForm').style.display = 'block';
+    document.getElementById('unifiedSuccess').style.display = 'none';
+    document.getElementById('unifiedCompanyName').value = '';
+    document.getElementById('unifiedContactName').value = '';
+    document.getElementById('unifiedEmail').value = '';
+    document.getElementById('unifiedError').style.display = 'none';
+    document.getElementById('unifiedInviteBtn').disabled = false;
+    document.getElementById('unifiedInviteBtn').textContent = '✉️ Create Account & Send Invite';
+}
+
+function copyUnifiedPitchHtml() {
+    if (!window._unifiedPitchHtml) { toast('Generate a pitch first.', 'error'); return; }
+    try {
+        const blob = new Blob([window._unifiedPitchHtml], { type: 'text/html' });
+        const textBlob = new Blob([window._unifiedPitchHtml], { type: 'text/plain' });
+        navigator.clipboard.write([new ClipboardItem({ 'text/html': blob, 'text/plain': textBlob })]).then(
+            function() { toast('HTML pitch copied!', 'success'); },
+            function() { navigator.clipboard.writeText(window._unifiedPitchHtml).then(function() { toast('Copied as text.', 'success'); }); }
+        );
+    } catch(e) { navigator.clipboard.writeText(window._unifiedPitchHtml).then(function() { toast('Copied.', 'success'); }); }
+}
+
+function copyUnifiedPitchPlain() {
+    if (!window._unifiedPitchPlain) { toast('Generate a pitch first.', 'error'); return; }
+    navigator.clipboard.writeText(window._unifiedPitchPlain).then(function() { toast('Plain text pitch copied!', 'success'); }).catch(function() { toast('Copy failed.', 'error'); });
 }
 
 // ── Escape HTML ──────────────────────────────────────────────
