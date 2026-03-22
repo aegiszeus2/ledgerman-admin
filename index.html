@@ -21,6 +21,7 @@
     --primary:  #c9a84c;
     --primary2: #e8c46a;
     --success:  #2ecc71;
+    --success-light: rgba(46,204,113,.15);
     --warning:  #f39c12;
     --danger:   #e74c3c;
     --info:     #3498db;
@@ -1191,7 +1192,7 @@ async function openDetail(companyId) {
                     </div>
                     <div id="modulesCardContent" style="padding:8px 0 8px 0">
                         <div style="font-size:0.85rem;color:var(--text2);margin-bottom:12px;padding:0 8px">
-                            Enable or disable features for this company. Toggle switches save automatically.
+                            <strong>Features:</strong> Toggle modules on/off to customize functionality for this company. All changes save automatically when you click the switch. <strong>Custom modules:</strong> Create your own modules by clicking "+ Add Custom Module" below.
                         </div>
                         <div id="modulesLoading" class="text-muted text-sm">Loading modules…</div>
                         <div id="modulesContent" style="display:none"></div>
@@ -1447,7 +1448,13 @@ async function loadCompanyModules(companyId) {
 }
 
 async function toggleModule(companyId, moduleKey, enabled) {
+    const checkbox = document.getElementById(`module_${moduleKey}`);
+    const originalState = checkbox.checked;
+
     try {
+        // Disable checkbox while saving (visual feedback)
+        checkbox.disabled = true;
+
         // Fetch current modules
         const data = await apiFetch(`/api/superadmin/companies/${companyId}/modules`);
         const modules = data.modules || {};
@@ -1459,12 +1466,23 @@ async function toggleModule(companyId, moduleKey, enabled) {
             body: JSON.stringify({ modules })
         });
 
+        checkbox.disabled = false;
+
         if (result.success) {
-            toast(`Module ${enabled ? 'enabled' : 'disabled'}`, 'success');
+            // Briefly highlight to show success
+            checkbox.parentElement.style.background = 'var(--success-light)';
+            setTimeout(() => {
+                checkbox.parentElement.style.background = 'var(--bg3)';
+            }, 500);
+            toast(`✓ ${enabled ? 'Enabled' : 'Disabled'}`, 'success');
         } else {
+            checkbox.checked = originalState;
+            checkbox.disabled = false;
             toast('Failed to update module', 'error');
         }
     } catch(e) {
+        checkbox.checked = originalState;
+        checkbox.disabled = false;
         toast('Error: ' + e.message, 'error');
     }
 }
@@ -1478,11 +1496,31 @@ function toggleModulesCard() {
 }
 
 function showAddCustomModule(companyId) {
-    const name = prompt('Custom Module Name (e.g., "Equipment Tracking"):');
-    if (!name) return;
-    const desc = prompt('Description:');
-    if (desc === null) return;
+    // Show modal form instead of browser prompts
+    document.getElementById('customModuleCompanyId').value = companyId;
+    document.getElementById('customModuleName').value = '';
+    document.getElementById('customModuleDesc').value = '';
+    const modal = document.getElementById('customModuleModal');
+    modal.style.display = 'flex';
+    document.getElementById('customModuleName').focus();
+}
 
+function closeCustomModuleModal() {
+    const modal = document.getElementById('customModuleModal');
+    modal.style.display = 'none';
+}
+
+function submitCustomModuleForm() {
+    const companyId = document.getElementById('customModuleCompanyId').value;
+    const name = document.getElementById('customModuleName').value.trim();
+    const desc = document.getElementById('customModuleDesc').value.trim();
+
+    if (!name) {
+        toast('Please enter a module name', 'warning');
+        return;
+    }
+
+    closeCustomModuleModal();
     addCustomModule(companyId, name, desc);
 }
 
@@ -2005,6 +2043,31 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<!-- Custom Module Modal -->
+<div id="customModuleModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center" onclick="if(event.target===this) closeCustomModuleModal()">
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:20px;max-width:400px;width:90%;box-shadow:0 4px 12px rgba(0,0,0,0.2)">
+        <h3 style="margin-top:0;margin-bottom:16px">Create Custom Module</h3>
+
+        <div class="form-group">
+            <label for="customModuleName">Module Name</label>
+            <input type="text" id="customModuleName" class="form-control" placeholder="e.g., Equipment Tracking, Photo Archive" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:.9rem">
+        </div>
+
+        <div class="form-group">
+            <label for="customModuleDesc">Description (optional)</label>
+            <textarea id="customModuleDesc" class="form-control" placeholder="Brief description of what this module is for" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:.9rem;min-height:60px;resize:vertical"></textarea>
+        </div>
+
+        <input type="hidden" id="customModuleCompanyId">
+
+        <div style="display:flex;gap:8px;margin-top:16px">
+            <button class="btn btn-secondary" onclick="closeCustomModuleModal()" style="flex:1">Cancel</button>
+            <button class="btn btn-primary" onclick="submitCustomModuleForm()" style="flex:1">Create Module</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
 <!-- Fix: Render redeploy trigger -->
