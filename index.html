@@ -1555,7 +1555,6 @@ async function generateInvite() {
     if (!companyName) { toast('Enter company name.', 'error'); return; }
 
     const domain = email.split('@')[1];
-    const companyName = domain.split('.')[0].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     btn.disabled = true; btn.textContent = '⏳ Extracting brand…';
     el.innerHTML = '<div class="empty">Fetching logo & extracting colors…</div>';
 
