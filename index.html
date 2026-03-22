@@ -653,6 +653,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
                     <label>Contact Name (optional)</label>
                     <input type="text" id="inviteContactName" placeholder="e.g. John Smith">
                 </div>
+                <div class="form-group">
+                    <label>Company Name</label>
+                    <input type="text" id="inviteCompanyName" placeholder="e.g. Apex Contracting">
+                </div>
                 <button class="btn btn-primary" onclick="generateInvite()" id="inviteBtn">🎨 Generate Branded Pitch</button>
                 <div id="invitePreview" style="margin-top:16px"></div>
             </div>
@@ -1544,9 +1548,11 @@ async function copyApiKey() {
 async function generateInvite() {
     const email = document.getElementById('inviteEmail').value.trim();
     const contactName = document.getElementById('inviteContactName').value.trim();
+    const companyName = document.getElementById('inviteCompanyName').value.trim();
     const el = document.getElementById('invitePreview');
     const btn = document.getElementById('inviteBtn');
     if (!email || !email.includes('@')) { toast('Enter a valid email.', 'error'); return; }
+    if (!companyName) { toast('Enter company name.', 'error'); return; }
 
     const domain = email.split('@')[1];
     const companyName = domain.split('.')[0].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -1559,11 +1565,10 @@ async function generateInvite() {
         const primary = colors[0] || '#2563eb';
         const secondary = colors[1] || '#1e40af';
         const accent = colors[2] || '#f59e0b';
-        const displayName = contactName || companyName;
         const greeting = contactName ? 'Hi ' + contactName + ',' : 'Hi there,';
 
-        const pitchHtml = buildPitchEmail(greeting, displayName, domain, logoUrl, primary, secondary, accent);
-        const pitchPlain = buildPitchPlain(greeting, displayName);
+        const pitchHtml = buildPitchEmail(greeting, companyName, domain, logoUrl, primary, secondary, accent);
+        const pitchPlain = buildPitchPlain(greeting, companyName);
 
         el.innerHTML = '<div style="margin-bottom:12px">' +
             '<div class="flex-between mb-1">' +
@@ -1633,7 +1638,7 @@ function extractColorsFromLogo(logoUrl) {
     });
 }
 
-function buildPitchEmail(greeting, displayName, domain, logoUrl, primary, secondary, accent) {
+function buildPitchEmail(greeting, companyName, domain, logoUrl, primary, secondary, accent) {
     return '<div style="font-family:Segoe UI,system-ui,sans-serif;max-width:600px;margin:0 auto">' +
         '<div style="background:linear-gradient(135deg,' + primary + ',' + secondary + ');padding:32px 24px;text-align:center">' +
         '<img src="' + logoUrl + '" alt="Logo" style="height:48px;margin-bottom:16px;border-radius:6px;background:#fff;padding:6px" onerror="this.style.display=\'none\'">' +
@@ -1642,7 +1647,7 @@ function buildPitchEmail(greeting, displayName, domain, logoUrl, primary, second
         '</div>' +
         '<div style="padding:28px 24px;color:#333;font-size:15px;line-height:1.6">' +
         '<p>' + greeting + '</p>' +
-        '<p>I came across <strong>' + esc(displayName || domain) + '</strong> and wanted to reach out — I think <strong>Ledgerman</strong> could save your team serious time and money.</p>' +
+        '<p>I came across <strong>' + esc(companyName || domain) + '</strong> and wanted to reach out — I think <strong>Ledgerman</strong> could save your team serious time and money.</p>' +
         '<p><strong>What Ledgerman does:</strong></p>' +
         '<ul style="padding-left:20px;margin:12px 0">' +
         '<li><strong>Digital timesheets</strong> — workers clock in/out from their phone. No paper, no buddy punching.</li>' +
@@ -1664,8 +1669,8 @@ function buildPitchEmail(greeting, displayName, domain, logoUrl, primary, second
         '</div></div>';
 }
 
-function buildPitchPlain(greeting, displayName) {
-    return greeting + '\n\nI came across ' + (displayName || 'your company') + ' and wanted to reach out — I think Ledgerman could save your team serious time and money.\n\nWhat Ledgerman does:\n• Digital timesheets — workers clock in/out from their phone. No paper, no buddy punching.\n• Photo documentation — timestamped, GPS-tagged job site photos. Proof of work, instantly.\n• Real-time dashboard — see who\'s working where, right now. No chasing people.\n• One-click invoicing — generate professional invoices from approved timesheets.\n• Zero IT setup — works on any phone, any browser. 5-minute onboarding.\n\nCompanies using Ledgerman cut admin time by 10+ hours/week and eliminate timesheet disputes entirely.\n\nStart your free trial: https://ledgerman.org\nNo credit card required. Set up in under 5 minutes.\n\nHappy to jump on a quick call if you\'d like a walkthrough.\n\nBest,\nLucas\nLedgerman · ledgerman.org';
+function buildPitchPlain(greeting, companyName) {
+    return greeting + '\n\nI came across ' + (companyName || 'your company') + ' and wanted to reach out — I think Ledgerman could save your team serious time and money.\n\nWhat Ledgerman does:\n• Digital timesheets — workers clock in/out from their phone. No paper, no buddy punching.\n• Photo documentation — timestamped, GPS-tagged job site photos. Proof of work, instantly.\n• Real-time dashboard — see who\'s working where, right now. No chasing people.\n• One-click invoicing — generate professional invoices from approved timesheets.\n• Zero IT setup — works on any phone, any browser. 5-minute onboarding.\n\nCompanies using Ledgerman cut admin time by 10+ hours/week and eliminate timesheet disputes entirely.\n\nStart your free trial: https://ledgerman.org\nNo credit card required. Set up in under 5 minutes.\n\nHappy to jump on a quick call if you\'d like a walkthrough.\n\nBest,\nLucas\nLedgerman · ledgerman.org';
 }
 
 function copyInviteHtml() {
