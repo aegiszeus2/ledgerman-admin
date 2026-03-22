@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Ledgerman Super Admin — LittleShield</title>
+<!-- CACHE BUSTER: 2026-03-22T19:45 -->
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -12,8 +16,8 @@
     --bg2:      #111120;
     --bg3:      #1a1a2e;
     --border:   rgba(255,255,255,.08);
-    --text:     #e8e8f0;
-    --text2:    #8888aa;
+    --text:     #ffffff;
+    --text2:    #eeeeee;
     --primary:  #c9a84c;
     --primary2: #e8c46a;
     --success:  #2ecc71;
@@ -409,12 +413,45 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 .empty { text-align: center; padding: 40px; color: var(--text2); }
 
 /* ── Responsive ─────────────────────────────────────────────────── */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
     .main-content { padding: 12px; }
     .login-box { padding: 28px 20px; }
     .stat-grid { grid-template-columns: repeat(2, 1fr); }
+
+    /* ─ Table mobile optimization ─ */
+    .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -12px;
+        padding: 0 12px;
+    }
+    table {
+        font-size: .75rem;
+        min-width: 600px;
+    }
+    thead th {
+        padding: 6px 8px;
+        font-size: .7rem;
+    }
+    tbody td {
+        padding: 8px 8px;
+    }
+    .badge { font-size: .65rem; padding: 1px 6px; }
+    .text-sm { font-size: .7rem; }
+}
+
+@media (max-width: 600px) {
+    .main-content { padding: 8px; }
+
+    /* ─ Hide columns 5+ on very small phones ─ */
     thead th:nth-child(n+5) { display: none; }
     tbody td:nth-child(n+5) { display: none; }
+
+    /* ─ Super compressed table for 4 columns ─ */
+    table { min-width: 350px; }
+    thead th { padding: 5px 6px; font-size: .65rem; }
+    tbody td { padding: 6px 6px; }
+    .badge { padding: 1px 4px; }
 }
 </style>
 </head>
@@ -455,6 +492,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div class="top-bar-right">
             <div class="status-dot" id="serverDot" title="Server status"></div>
             <span class="text-sm text-muted" id="serverStatus">Connected</span>
+            <button class="btn btn-secondary btn-sm" id="refreshBtn" onclick="refreshSuperAdmin()">↻ Refresh</button>
             <button class="btn btn-secondary btn-sm" id="logoutBtn">Logout</button>
         </div>
     </div>
@@ -530,6 +568,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
                         <thead>
                             <tr>
                                 <th>Company</th>
+                                <th>Password</th>
                                 <th>Workers</th>
                                 <th>Projects</th>
                                 <th>Last Active</th>
@@ -538,7 +577,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
                             </tr>
                         </thead>
                         <tbody id="companiesBody">
-                            <tr><td colspan="6" class="empty">Loading…</td></tr>
+                            <tr><td colspan="7" class="empty">Loading…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -597,42 +636,80 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div data-section="support" style="display:none">
             <div style="margin-bottom:20px">
                 <h2 style="font-size:1.25rem;margin-bottom:4px">Customer Support</h2>
-                <p class="text-muted text-sm">View company data, generate support links, and manage customers.</p>
+                <p class="text-muted text-sm">Create customer accounts and send branded invitations.</p>
             </div>
 
-            <!-- ── INVITE COMPANY ──────────────────────────────── -->
+            <!-- ── UNIFIED INVITE & ONBOARD ──────────────────────────────── -->
             <div class="card">
-                <div class="card-header"><div class="card-title">✉️ Invite Company</div></div>
+                <div class="card-header"><div class="card-title">➕ Create Account & Send Invite</div></div>
                 <p class="text-sm text-muted" style="margin-bottom:14px">
-                    Enter a company email — we'll pull their logo, extract brand colors, and generate a branded sales pitch.
+                    Create a new customer account with auto-generated password. We'll send a branded pitch email with a pre-filled login link.
                 </p>
-                <div class="form-group">
-                    <label>Company Email</label>
-                    <input type="email" id="inviteEmail" placeholder="e.g. john@apexcontracting.com">
+                <div id="unifiedInviteForm">
+                    <div class="form-group">
+                        <label>Company Name *</label>
+                        <input type="text" id="unifiedCompanyName" placeholder="e.g. Apex Contracting">
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Name (optional)</label>
+                        <input type="text" id="unifiedContactName" placeholder="e.g. John Smith">
+                    </div>
+                    <div class="form-group">
+                        <label>Company Email *</label>
+                        <input type="email" id="unifiedEmail" placeholder="e.g. john@apexcontracting.com">
+                    </div>
+                    <button class="btn btn-primary" onclick="createAndInviteCompany()" id="unifiedInviteBtn">✉️ Create Account & Send Invite</button>
+                    <div id="unifiedError" style="display:none;margin-top:12px;padding:12px;background:var(--danger)20;border:1px solid var(--danger);border-radius:var(--radius);color:var(--danger)"></div>
                 </div>
-                <div class="form-group">
-                    <label>Contact Name (optional)</label>
-                    <input type="text" id="inviteContactName" placeholder="e.g. John Smith">
+                <div id="unifiedSuccess" style="display:none">
+                    <div style="background:var(--success)20;border:1px solid var(--success);border-radius:var(--radius);padding:16px;margin-bottom:16px">
+                        <strong>✅ Account Created!</strong> Password has been auto-generated. 30-day trial starts on first login.
+                    </div>
+                    <div class="form-group">
+                        <label>Username (Company Name)</label>
+                        <div style="display:flex;gap:8px">
+                            <input type="text" id="unifiedSuccessCompanyName" readonly style="background:var(--bg3);flex:1">
+                            <button class="btn btn-secondary btn-sm" onclick="copyToClipboard(document.getElementById('unifiedSuccessCompanyName').value)">📋 Copy</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Auto-Generated Password</label>
+                        <div style="display:flex;gap:8px">
+                            <input type="text" id="unifiedSuccessPassword" readonly style="background:var(--bg3);flex:1">
+                            <button class="btn btn-secondary btn-sm" onclick="copyToClipboard(document.getElementById('unifiedSuccessPassword').value)">📋 Copy</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Login URL (Pre-Filled)</label>
+                        <div style="display:flex;gap:8px">
+                            <input type="text" id="unifiedSuccessLoginUrl" readonly style="background:var(--bg3);flex:1;font-size:0.85rem;font-family:monospace">
+                            <button class="btn btn-secondary btn-sm" onclick="copyToClipboard(document.getElementById('unifiedSuccessLoginUrl').value)">📋 Copy</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Trial Status</label>
+                        <input type="text" readonly style="background:var(--bg3)" value="30-day trial (starts on first login)">
+                    </div>
+                    <div style="background:var(--bg2);padding:12px;border-radius:8px;margin:16px 0;font-size:0.85rem;border-left:4px solid var(--info)">
+                        <strong>🎯 Next Steps:</strong><br>
+                        1. Copy the login URL above and share it with the customer<br>
+                        2. Or send them the branded pitch email (see below)<br>
+                        3. They click the link and log in — no password entry needed<br>
+                        4. 30-day trial begins on their first login
+                    </div>
+                    <div class="form-group" style="margin-top:16px">
+                        <label><strong>📧 Branded Pitch Email</strong></label>
+                        <div id="unifiedSuccessPitchPreview" style="background:#fff;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);max-height:500px;overflow-y:auto;margin-top:8px"></div>
+                        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+                            <button class="btn btn-primary" onclick="copyUnifiedPitchHtml()">📋 Copy HTML</button>
+                            <button class="btn btn-secondary" onclick="copyUnifiedPitchPlain()">📝 Copy Plain Text</button>
+                            <a id="unifiedEmailLink" class="btn btn-secondary" href="#" target="_blank">📧 Open in Email Client</a>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:24px">
+                        <button class="btn btn-secondary btn-block" onclick="resetUnifiedInvite()">+ Invite Another Company</button>
+                    </div>
                 </div>
-                <button class="btn btn-primary" onclick="generateInvite()" id="inviteBtn">🎨 Generate Branded Pitch</button>
-                <div id="invitePreview" style="margin-top:16px"></div>
-            </div>
-
-            <div class="card">
-                <div class="card-header"><div class="card-title">Onboard New Customer</div></div>
-                <p class="text-sm text-muted" style="margin-bottom:14px">
-                    Send a customer a link to set up their Ledgerman account. They will register at the app URL.
-                </p>
-                <div class="form-group">
-                    <label>App URL (Netlify)</label>
-                    <input type="text" id="appUrlInput" value="https://ledgerman.org" placeholder="https://your-app.netlify.app">
-                </div>
-                <div class="form-group">
-                    <label>Customer Company Name</label>
-                    <input type="text" id="newCustomerName" placeholder="e.g. Apex Contracting Inc.">
-                </div>
-                <button class="btn btn-primary" onclick="generateOnboardLink()">Generate Onboard Link</button>
-                <div id="onboardResult" style="margin-top:12px"></div>
             </div>
 
             <div class="card">
@@ -679,20 +756,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <label for="createCompanyName">Company Name *</label>
             <input type="text" id="createCompanyName" placeholder="e.g. Laurence Construction" required>
         </div>
-        <div class="form-group">
-            <label for="createCompanyPassword">Admin Password *</label>
-            <div class="password-field-wrap">
-            <input type="password" id="createCompanyPassword" placeholder="Strong password (8+ chars)" required style="padding-right:40px">
-            <button type="button" class="password-toggle" data-toggle="createCompanyPassword">Show</button>
-        </div>
-        </div>
-        <div class="form-group">
-            <label for="createCompanyPasswordConfirm">Confirm Password *</label>
-            <div class="password-field-wrap">
-            <input type="password" id="createCompanyPasswordConfirm" placeholder="Repeat password" required style="padding-right:40px">
-            <button type="button" class="password-toggle" data-toggle="createCompanyPasswordConfirm">Show</button>
-        </div>
-        </div>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin:16px 0">Password will be auto-generated. 30-day trial starts on first login.</p>
         <div style="display:flex;gap:8px;margin-top:24px">
             <button class="btn btn-primary btn-block" onclick="submitCreateCompany()" id="createCompanySubmitBtn">Create Company</button>
             <button class="btn btn-secondary btn-block" onclick="closeCreateCompanyModal()">Cancel</button>
@@ -712,12 +776,25 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <input type="text" id="createCompanySuccessName" readonly style="background:var(--bg3)">
         </div>
         <div class="form-group">
-            <label>Admin Password</label>
-            <input type="text" id="createCompanySuccessPassword" readonly style="background:var(--bg3)">
+            <label>Auto-Generated Admin Password</label>
+            <div style="display:flex;gap:8px">
+                <input type="text" id="createCompanySuccessPassword" readonly style="background:var(--bg3);flex:1">
+                <button class="btn btn-secondary btn-sm" onclick="copyToClipboard(document.getElementById('createCompanySuccessPassword').value)">📋 Copy</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Trial Status</label>
+            <input type="text" id="createCompanySuccessTrial" readonly style="background:var(--bg3)" value="30-day trial (starts on first login)">
         </div>
         <div class="form-group">
             <label>Created At</label>
             <input type="text" id="createCompanySuccessCreated" readonly style="background:var(--bg3)">
+        </div>
+        <div style="background:var(--bg2);padding:12px;border-radius:8px;margin:16px 0;font-size:0.85rem;border-left:4px solid var(--info)">
+            <strong>Next Steps:</strong><br>
+            • Send the company name and auto-generated password to the customer<br>
+            • They can log in at <span id="companyLoginUrl">ledgerman.org</span> with company name and password<br>
+            • 30-day trial begins on their first login
         </div>
         <div style="display:flex;gap:8px;margin-top:24px">
             <button class="btn btn-primary btn-block" onclick="closeCreateCompanyModal()">Done</button>
@@ -833,6 +910,24 @@ window.addEventListener('load', function() {
     }
 });
 
+// Refresh current tab
+function refreshSuperAdmin() {
+    const activeBtn = document.querySelector('.nav-btn.active');
+    const currentTab = activeBtn ? activeBtn.dataset.tab : 'overview';
+    const btn = document.getElementById('refreshBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⟳ Refreshing…';
+    }
+    setTimeout(() => {
+        switchTab(currentTab);
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '↻ Refresh';
+        }
+    }, 300);
+}
+
 document.getElementById('logoutBtn').onclick = function() {
     _key = '';
     localStorage.removeItem('ls_admin_key');
@@ -929,13 +1024,13 @@ function renderRecentCompanies(list) {
 // ── Companies ────────────────────────────────────────────────
 async function loadCompanies() {
     const tbody = document.getElementById('companiesBody');
-    tbody.innerHTML = '<tr><td colspan="6" class="empty">Loading…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Loading…</td></tr>';
     try {
         _companies = await apiFetch('/api/superadmin/companies');
         renderCompaniesTable(_companies);
         populateDiagSelect(_companies);
     } catch(e) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty text-muted">Error: ' + esc(e.message) + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="empty text-muted">Error: ' + esc(e.message) + '</td></tr>';
     }
 }
 
@@ -943,12 +1038,16 @@ function refreshCompanies() { loadCompanies(); }
 
 function renderCompaniesTable(list) {
     const tbody = document.getElementById('companiesBody');
-    if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No companies registered yet.</td></tr>'; return; }
+    if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No companies registered yet.</td></tr>'; return; }
     tbody.innerHTML = list.map(c => `
         <tr onclick="openDetail('${c.id}')">
             <td>
                 <strong>${esc(c.name)}</strong>
                 <br><span class="text-sm text-muted" style="font-family:monospace">${c.id}</span>
+            </td>
+            <td>
+                <code style="font-size:12px;background:#f5f5f5;color:#000;padding:4px 6px;border-radius:3px;word-break:break-all">${esc(c.password)}</code>
+                <br><button class="btn btn-tiny" style="margin-top:4px;padding:2px 6px;font-size:11px" onclick="event.stopPropagation(); copyToClipboard('${esc(c.password)}')">📋 Copy</button>
             </td>
             <td>${c.workers}</td>
             <td>${c.projects}</td>
@@ -1020,11 +1119,92 @@ async function openDetail(companyId) {
                 `).join('') : '<p class="text-muted text-sm">No activity yet.</p>'}
             </div>
 
+            <div id="detailInfoSection">
+                <div class="card" style="margin-bottom:12px">
+                    <div class="card-title mb-1">Company Settings</div>
+                    <div class="text-sm">
+                        <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Company Name</span><span id="detailCompanyName">${esc(d.settings.companyName || d.name || '—')}</span></div>
+                        <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Email</span><span id="detailEmail">${esc(d.settings.email || '—')}</span></div>
+                        <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Phone</span><span id="detailPhone">${esc(d.settings.phone || '—')}</span></div>
+                        <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Address</span><span id="detailAddress">${esc(d.settings.address || '—')}</span></div>
+                        <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">City</span><span id="detailCity">${esc(d.settings.city || '—')}</span></div>
+                        <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Province</span><span id="detailProvince">${esc(d.settings.province || '—')}</span></div>
+                        <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Postal Code</span><span id="detailPostalCode">${esc(d.settings.postalCode || '—')}</span></div>
+                        <div class="flex-between"><span class="text-muted">HST Number</span><span id="detailHstNumber">${esc(d.settings.hstNumber || '—')}</span></div>
+                    </div>
+                </div>
+                <div id="detailEditConfirmation" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px">
+                    <div style="margin-bottom:12px;font-size:.9rem">
+                        <strong>Edit ${esc(d.settings.companyName || d.name || 'Company')}?</strong><br>
+                        <span class="text-muted text-sm">Changes apply immediately. Review before confirming.</span>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn btn-secondary btn-sm" onclick="cancelDetailEdit()">Cancel</button>
+                        <button class="btn btn-gold btn-sm" onclick="confirmDetailEdit('${d.id}')">Confirm Edit</button>
+                    </div>
+                </div>
+                <div id="detailEditFields" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px">
+                    <div class="form-group">
+                        <label class="label-sm">Company Name</label>
+                        <input type="text" id="editCompanyName" class="form-control" value="${esc(d.settings.companyName || d.name || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label class="label-sm">Email</label>
+                        <input type="email" id="editEmail" class="form-control" value="${esc(d.settings.email || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label class="label-sm">Phone</label>
+                        <input type="tel" id="editPhone" class="form-control" value="${esc(d.settings.phone || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label class="label-sm">Address</label>
+                        <input type="text" id="editAddress" class="form-control" value="${esc(d.settings.address || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label class="label-sm">City</label>
+                        <input type="text" id="editCity" class="form-control" value="${esc(d.settings.city || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label class="label-sm">Province</label>
+                        <input type="text" id="editProvince" class="form-control" value="${esc(d.settings.province || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label class="label-sm">Postal Code</label>
+                        <input type="text" id="editPostalCode" class="form-control" value="${esc(d.settings.postalCode || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label class="label-sm">HST Number</label>
+                        <input type="text" id="editHstNumber" class="form-control" value="${esc(d.settings.hstNumber || '')}">
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn btn-secondary btn-sm" onclick="cancelDetailEdit()">Cancel</button>
+                        <button class="btn btn-gold btn-sm" onclick="saveDetailEdit('${d.id}')">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="detailModulesSection" style="margin-bottom:12px">
+                <div class="card">
+                    <div class="card-title mb-1" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="toggleModulesCard()">
+                        <span>📦 Modules & Features</span>
+                        <span id="modulesToggleIcon" style="font-size:0.8rem">▼</span>
+                    </div>
+                    <div id="modulesCardContent" style="padding:0 0 8px 0">
+                        <div id="modulesLoading" class="text-muted text-sm">Loading modules…</div>
+                        <div id="modulesContent" style="display:none"></div>
+                    </div>
+                </div>
+            </div>
+
             <div style="display:flex;flex-direction:column;gap:8px">
+                <button class="btn btn-primary" id="detailEditBtn" onclick="initDetailEdit()">🔒 Edit Details</button>
                 <button class="btn btn-secondary" onclick="runDiagnosticsFor('${d.id}')">🛡️ Run LittleShield Diagnostics</button>
                 <button class="btn btn-danger" onclick="deleteCompany('${d.id}','${esc(d.name)}')">🗑️ Delete Company & All Data</button>
             </div>
         `;
+
+        // Load modules data
+        loadCompanyModules(companyId);
     } catch(e) {
         document.getElementById('detailContent').innerHTML = '<div class="empty">Error: ' + esc(e.message) + '</div>';
     }
@@ -1044,8 +1224,6 @@ function openCreateCompanyModal() {
     document.getElementById('createCompanyError').style.display = 'none';
     // Clear form
     document.getElementById('createCompanyName').value = '';
-    document.getElementById('createCompanyPassword').value = '';
-    document.getElementById('createCompanyPasswordConfirm').value = '';
     document.getElementById('createCompanySubmitBtn').disabled = false;
     document.getElementById('createCompanySubmitBtn').textContent = 'Create Company';
 }
@@ -1057,8 +1235,6 @@ function closeCreateCompanyModal() {
 
 async function submitCreateCompany() {
     const name = document.getElementById('createCompanyName').value.trim();
-    const pwd = document.getElementById('createCompanyPassword').value;
-    const pwdConfirm = document.getElementById('createCompanyPasswordConfirm').value;
     const errorEl = document.getElementById('createCompanyError');
     const submitBtn = document.getElementById('createCompanySubmitBtn');
 
@@ -1068,30 +1244,16 @@ async function submitCreateCompany() {
         errorEl.style.display = 'block';
         return;
     }
-    if (!pwd) {
-        errorEl.textContent = 'Password is required.';
-        errorEl.style.display = 'block';
-        return;
-    }
-    if (pwd.length < 8) {
-        errorEl.textContent = 'Password must be at least 8 characters.';
-        errorEl.style.display = 'block';
-        return;
-    }
-    if (pwd !== pwdConfirm) {
-        errorEl.textContent = 'Passwords do not match.';
-        errorEl.style.display = 'block';
-        return;
-    }
 
     errorEl.style.display = 'none';
     submitBtn.disabled = true;
     submitBtn.textContent = 'Creating…';
 
     try {
+        // API auto-generates password
         const result = await apiFetch('/api/superadmin/companies', {
             method: 'POST',
-            body: JSON.stringify({ name, adminPassword: pwd })
+            body: JSON.stringify({ name })
         });
 
         // Show success screen
@@ -1099,14 +1261,19 @@ async function submitCreateCompany() {
         document.getElementById('createCompanySuccess').style.display = 'block';
         document.getElementById('createCompanySuccessId').value = result.companyId;
         document.getElementById('createCompanySuccessName').value = result.name;
-        document.getElementById('createCompanySuccessPassword').value = pwd;
+        document.getElementById('createCompanySuccessPassword').value = result.adminPassword;
         document.getElementById('createCompanySuccessCreated').value = formatDate(result.createdAt);
+
+        // Update trial info
+        if (result.isTrial) {
+            document.getElementById('createCompanySuccessTrial').value = `${result.trialDays}-day trial (starts on first login)`;
+        }
 
         // Refresh companies list
         loadCompanies();
         loadOverview();
 
-        toast('Company created successfully!', 'success');
+        toast('Company created successfully! Password auto-generated.', 'success');
     } catch(e) {
         errorEl.textContent = 'Creation failed: ' + e.message;
         errorEl.style.display = 'block';
@@ -1125,6 +1292,225 @@ async function deleteCompany(id, name) {
         loadOverview();
     } catch(e) {
         toast('Delete failed: ' + e.message, 'error');
+    }
+}
+
+// ── Company Detail Edit Functions ──────────────────────────────────
+function initDetailEdit() {
+    // Show confirmation prompt
+    document.getElementById('detailEditConfirmation').style.display = 'block';
+    document.getElementById('detailEditBtn').style.display = 'none';
+}
+
+function cancelDetailEdit() {
+    // Hide edit UI
+    document.getElementById('detailEditConfirmation').style.display = 'none';
+    document.getElementById('detailEditFields').style.display = 'none';
+    document.getElementById('detailEditBtn').style.display = 'block';
+}
+
+function confirmDetailEdit(companyId) {
+    // User confirmed edit intent — show editable fields
+    document.getElementById('detailEditConfirmation').style.display = 'none';
+    document.getElementById('detailEditFields').style.display = 'block';
+}
+
+async function saveDetailEdit(companyId) {
+    const updates = {
+        companyName: document.getElementById('editCompanyName').value.trim(),
+        email: document.getElementById('editEmail').value.trim(),
+        phone: document.getElementById('editPhone').value.trim(),
+        address: document.getElementById('editAddress').value.trim(),
+        city: document.getElementById('editCity').value.trim(),
+        province: document.getElementById('editProvince').value.trim(),
+        postalCode: document.getElementById('editPostalCode').value.trim(),
+        hstNumber: document.getElementById('editHstNumber').value.trim(),
+    };
+
+    // Validate required fields
+    if (!updates.companyName) {
+        toast('Company name is required', 'error');
+        return;
+    }
+
+    document.getElementById('detailEditBtn').disabled = true;
+    
+    try {
+        const result = await apiFetch(
+            '/api/superadmin/companies/' + companyId,
+            {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json', 'X-Superadmin-Key': _key},
+                body: JSON.stringify(updates)
+            }
+        );
+
+        if (result.success) {
+            toast('Company details updated successfully', 'success');
+            
+            // Update display with new values
+            document.getElementById('detailCompanyName').textContent = esc(updates.companyName);
+            document.getElementById('detailEmail').textContent = esc(updates.email || '—');
+            document.getElementById('detailPhone').textContent = esc(updates.phone || '—');
+            document.getElementById('detailAddress').textContent = esc(updates.address || '—');
+            document.getElementById('detailCity').textContent = esc(updates.city || '—');
+            document.getElementById('detailProvince').textContent = esc(updates.province || '—');
+            document.getElementById('detailPostalCode').textContent = esc(updates.postalCode || '—');
+            document.getElementById('detailHstNumber').textContent = esc(updates.hstNumber || '—');
+            
+            // Also update title if company name changed
+            document.getElementById('detailTitle').textContent = updates.companyName;
+            
+            // Hide edit UI and restore view
+            cancelDetailEdit();
+        } else {
+            toast('Update failed: ' + (result.error || 'Unknown error'), 'error');
+        }
+    } catch(e) {
+        toast('Update error: ' + e.message, 'error');
+    } finally {
+        document.getElementById('detailEditBtn').disabled = false;
+    }
+}
+
+// ── Modules ───────────────────────────────────────────────────
+async function loadCompanyModules(companyId) {
+    const loadingEl = document.getElementById('modulesLoading');
+    const contentEl = document.getElementById('modulesContent');
+
+    try {
+        const moduleData = await apiFetch(`/api/superadmin/companies/${companyId}/modules`);
+        const registryData = await apiFetch('/api/superadmin/modules');
+
+        const modules = moduleData.modules || {};
+        const registry = registryData.registry || {};
+
+        // Group modules by category
+        const categories = {
+            'security': { label: '🔐 Security', modules: [] },
+            'field_operations': { label: '📍 Field Operations', modules: [] },
+            'reporting': { label: '📊 Reporting & Analytics', modules: [] },
+            'pmi': { label: '📋 PMI Best Practices', modules: [] },
+            'accounting': { label: '💰 Accounting', modules: [] },
+        };
+
+        // Populate categories
+        Object.entries(registry).forEach(([key, spec]) => {
+            const category = spec.category || 'other';
+            if (categories[category]) {
+                categories[category].modules.push({ key, spec, enabled: modules[key] || false });
+            }
+        });
+
+        // Render modules by category
+        let html = '';
+        Object.values(categories).forEach(cat => {
+            if (cat.modules.length) {
+                html += `
+                    <div style="margin-bottom:12px">
+                        <div style="font-weight:600;color:var(--primary);margin-bottom:6px;font-size:.9rem">${cat.label}</div>
+                        <div style="display:flex;flex-direction:column;gap:4px">
+                `;
+                cat.modules.forEach(m => {
+                    html += `
+                        <div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--bg3);border-radius:4px">
+                            <input type="checkbox" id="module_${m.key}" ${m.enabled ? 'checked' : ''} onchange="toggleModule('${companyId}','${m.key}',this.checked)">
+                            <div style="flex:1">
+                                <label for="module_${m.key}" style="cursor:pointer;font-weight:500;font-size:.9rem;margin:0">${m.spec.name}</label>
+                                <div style="font-size:.75rem;color:var(--text2);margin-top:2px">${m.spec.description}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div></div>';
+            }
+        });
+
+        // Add custom module section
+        html += `
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+                <button class="btn btn-secondary btn-sm" onclick="showAddCustomModule('${companyId}')" style="width:100%">+ Add Custom Module</button>
+            </div>
+        `;
+
+        contentEl.innerHTML = html;
+        loadingEl.style.display = 'none';
+        contentEl.style.display = 'block';
+    } catch(e) {
+        loadingEl.style.display = 'none';
+        contentEl.style.display = 'block';
+        contentEl.innerHTML = '<div class="text-sm text-muted">Error loading modules: ' + esc(e.message) + '</div>';
+    }
+}
+
+async function toggleModule(companyId, moduleKey, enabled) {
+    try {
+        // Fetch current modules
+        const data = await apiFetch(`/api/superadmin/companies/${companyId}/modules`);
+        const modules = data.modules || {};
+        modules[moduleKey] = enabled;
+
+        // Send PATCH to update
+        const result = await apiFetch(`/api/superadmin/companies/${companyId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ modules })
+        });
+
+        if (result.success) {
+            toast(`Module ${enabled ? 'enabled' : 'disabled'}`, 'success');
+        } else {
+            toast('Failed to update module', 'error');
+        }
+    } catch(e) {
+        toast('Error: ' + e.message, 'error');
+    }
+}
+
+function toggleModulesCard() {
+    const content = document.getElementById('modulesCardContent');
+    const icon = document.getElementById('modulesToggleIcon');
+    const isHidden = content.style.display === 'none';
+    content.style.display = isHidden ? 'block' : 'none';
+    icon.textContent = isHidden ? '▼' : '▶';
+}
+
+function showAddCustomModule(companyId) {
+    const name = prompt('Custom Module Name (e.g., "Equipment Tracking"):');
+    if (!name) return;
+    const desc = prompt('Description:');
+    if (desc === null) return;
+
+    addCustomModule(companyId, name, desc);
+}
+
+async function addCustomModule(companyId, name, description) {
+    try {
+        // Fetch current modules
+        const data = await apiFetch(`/api/superadmin/companies/${companyId}/modules`);
+        const modules = data.modules || {};
+
+        // Find next custom_N key
+        let i = 1;
+        while (modules[`custom_${i}`]) i++;
+
+        // Add custom module
+        modules[`custom_${i}`] = true;
+
+        // Send PATCH to update
+        const result = await apiFetch(`/api/superadmin/companies/${companyId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ modules })
+        });
+
+        if (result.success) {
+            toast('Custom module added', 'success');
+            // Reload modules
+            loadCompanyModules(companyId);
+        } else {
+            toast('Failed to add module', 'error');
+        }
+    } catch(e) {
+        toast('Error: ' + e.message, 'error');
     }
 }
 
@@ -1271,20 +1657,37 @@ async function runGlobalPing() {
 function generateOnboardLink() {
     const appUrl = document.getElementById('appUrlInput').value.trim();
     const name = document.getElementById('newCustomerName').value.trim();
+    const password = document.getElementById('newCustomerPassword').value.trim();
     const el = document.getElementById('onboardResult');
+
     if (!appUrl) { toast('Enter the app URL first.', 'error'); return; }
-    const msg = name
-        ? `Hi ${name},\n\nYour Ledgerman account is ready to set up!\n\nClick the link below to get started:\n${appUrl}\n\n1. Click "Get Started"\n2. Enter your company name: ${name}\n3. Choose an admin password\n4. You're in!\n\nQuestions? Reply to this email.\n\n— Ledgerman Support\nlucastheofilou@gmail.com`
-        : `Welcome to Ledgerman!\n\nSet up your account at: ${appUrl}\n\n— Ledgerman Support`;
+    if (!name) { toast('Enter customer company name.', 'error'); return; }
+    if (!password) { toast('Enter temporary password.', 'error'); return; }
+
+    // Generate the invitation URL with auto-fill params
+    const inviteUrl = `${appUrl}?company=${encodeURIComponent(name)}&password=${encodeURIComponent(password)}`;
+
+    // Generate the invitation message
+    const msg = `Hi ${name},\n\nYour Ledgerman account is ready!\n\nClick this link to access your account:\n${inviteUrl}\n\nYour login details are pre-filled. Just click "Login" to get started.\n\nIf you want to change your password, you can do so in Settings after logging in.\n\nQuestions? Email us at lucastheofilou@gmail.com\n\n— Ledgerman Support`;
+
     el.innerHTML = `
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-top:8px">
             <div class="flex-between mb-1">
-                <span class="text-sm text-muted">Onboarding Message</span>
-                <button class="btn btn-secondary btn-sm" onclick="copyOnboard()">Copy</button>
+                <span class="text-sm text-muted">Invitation Link</span>
+                <button class="btn btn-secondary btn-sm" onclick="copyToClipboard('${inviteUrl.replace(/'/g, "\\'")}')">📋 Copy Link</button>
+            </div>
+            <input type="text" readonly value="${inviteUrl}" style="width:100%;padding:8px;border:none;border-radius:var(--radius);background:var(--bg1);color:var(--text);font-size:.85rem;font-family:monospace;margin-bottom:12px;cursor:pointer" onclick="this.select();document.execCommand('copy')" title="Click to select and copy">
+            <div class="flex-between mb-1">
+                <span class="text-sm text-muted">Invitation Message</span>
+                <button class="btn btn-secondary btn-sm" onclick="copyOnboard()">📧 Copy Message</button>
             </div>
             <pre id="onboardMsg" style="font-size:.8rem;white-space:pre-wrap;font-family:inherit;color:var(--text)">${esc(msg)}</pre>
         </div>
     `;
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => toast('Link copied to clipboard!', 'success')).catch(() => toast('Failed to copy.', 'error'));
 }
 
 function copyOnboard() {
@@ -1319,12 +1722,13 @@ async function copyApiKey() {
 async function generateInvite() {
     const email = document.getElementById('inviteEmail').value.trim();
     const contactName = document.getElementById('inviteContactName').value.trim();
+    const companyName = document.getElementById('inviteCompanyName').value.trim();
     const el = document.getElementById('invitePreview');
     const btn = document.getElementById('inviteBtn');
     if (!email || !email.includes('@')) { toast('Enter a valid email.', 'error'); return; }
+    if (!companyName) { toast('Enter company name.', 'error'); return; }
 
     const domain = email.split('@')[1];
-    const companyName = domain.split('.')[0].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     btn.disabled = true; btn.textContent = '⏳ Extracting brand…';
     el.innerHTML = '<div class="empty">Fetching logo & extracting colors…</div>';
 
@@ -1334,11 +1738,10 @@ async function generateInvite() {
         const primary = colors[0] || '#2563eb';
         const secondary = colors[1] || '#1e40af';
         const accent = colors[2] || '#f59e0b';
-        const displayName = contactName || companyName;
         const greeting = contactName ? 'Hi ' + contactName + ',' : 'Hi there,';
 
-        const pitchHtml = buildPitchEmail(greeting, displayName, domain, logoUrl, primary, secondary, accent);
-        const pitchPlain = buildPitchPlain(greeting, displayName);
+        const pitchHtml = buildPitchEmail(greeting, companyName, domain, logoUrl, primary, secondary, accent);
+        const pitchPlain = buildPitchPlain(greeting, companyName);
 
         el.innerHTML = '<div style="margin-bottom:12px">' +
             '<div class="flex-between mb-1">' +
@@ -1408,7 +1811,7 @@ function extractColorsFromLogo(logoUrl) {
     });
 }
 
-function buildPitchEmail(greeting, displayName, domain, logoUrl, primary, secondary, accent) {
+function buildPitchEmail(greeting, companyName, domain, logoUrl, primary, secondary, accent) {
     return '<div style="font-family:Segoe UI,system-ui,sans-serif;max-width:600px;margin:0 auto">' +
         '<div style="background:linear-gradient(135deg,' + primary + ',' + secondary + ');padding:32px 24px;text-align:center">' +
         '<img src="' + logoUrl + '" alt="Logo" style="height:48px;margin-bottom:16px;border-radius:6px;background:#fff;padding:6px" onerror="this.style.display=\'none\'">' +
@@ -1417,7 +1820,7 @@ function buildPitchEmail(greeting, displayName, domain, logoUrl, primary, second
         '</div>' +
         '<div style="padding:28px 24px;color:#333;font-size:15px;line-height:1.6">' +
         '<p>' + greeting + '</p>' +
-        '<p>I came across <strong>' + esc(displayName || domain) + '</strong> and wanted to reach out — I think <strong>Ledgerman</strong> could save your team serious time and money.</p>' +
+        '<p>I came across <strong>' + esc(companyName || domain) + '</strong> and wanted to reach out — I think <strong>Ledgerman</strong> could save your team serious time and money.</p>' +
         '<p><strong>What Ledgerman does:</strong></p>' +
         '<ul style="padding-left:20px;margin:12px 0">' +
         '<li><strong>Digital timesheets</strong> — workers clock in/out from their phone. No paper, no buddy punching.</li>' +
@@ -1439,8 +1842,8 @@ function buildPitchEmail(greeting, displayName, domain, logoUrl, primary, second
         '</div></div>';
 }
 
-function buildPitchPlain(greeting, displayName) {
-    return greeting + '\n\nI came across ' + (displayName || 'your company') + ' and wanted to reach out — I think Ledgerman could save your team serious time and money.\n\nWhat Ledgerman does:\n• Digital timesheets — workers clock in/out from their phone. No paper, no buddy punching.\n• Photo documentation — timestamped, GPS-tagged job site photos. Proof of work, instantly.\n• Real-time dashboard — see who\'s working where, right now. No chasing people.\n• One-click invoicing — generate professional invoices from approved timesheets.\n• Zero IT setup — works on any phone, any browser. 5-minute onboarding.\n\nCompanies using Ledgerman cut admin time by 10+ hours/week and eliminate timesheet disputes entirely.\n\nStart your free trial: https://ledgerman.org\nNo credit card required. Set up in under 5 minutes.\n\nHappy to jump on a quick call if you\'d like a walkthrough.\n\nBest,\nLucas\nLedgerman · ledgerman.org';
+function buildPitchPlain(greeting, companyName) {
+    return greeting + '\n\nI came across ' + (companyName || 'your company') + ' and wanted to reach out — I think Ledgerman could save your team serious time and money.\n\nWhat Ledgerman does:\n• Digital timesheets — workers clock in/out from their phone. No paper, no buddy punching.\n• Photo documentation — timestamped, GPS-tagged job site photos. Proof of work, instantly.\n• Real-time dashboard — see who\'s working where, right now. No chasing people.\n• One-click invoicing — generate professional invoices from approved timesheets.\n• Zero IT setup — works on any phone, any browser. 5-minute onboarding.\n\nCompanies using Ledgerman cut admin time by 10+ hours/week and eliminate timesheet disputes entirely.\n\nStart your free trial: https://ledgerman.org\nNo credit card required. Set up in under 5 minutes.\n\nHappy to jump on a quick call if you\'d like a walkthrough.\n\nBest,\nLucas\nLedgerman · ledgerman.org';
 }
 
 function copyInviteHtml() {
@@ -1460,6 +1863,116 @@ function copyInvitePlain() {
     navigator.clipboard.writeText(window._invitePlain).then(function() { toast('Plain text pitch copied!', 'success'); }).catch(function() { toast('Copy failed.', 'error'); });
 }
 
+// ── Unified Invite & Onboard ────────────────────────────────
+async function createAndInviteCompany() {
+    const companyName = document.getElementById('unifiedCompanyName').value.trim();
+    const contactName = document.getElementById('unifiedContactName').value.trim();
+    const email = document.getElementById('unifiedEmail').value.trim();
+    const errorEl = document.getElementById('unifiedError');
+    const btn = document.getElementById('unifiedInviteBtn');
+
+    // Validate
+    if (!companyName) {
+        errorEl.textContent = 'Company name is required.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    if (!email || !email.includes('@')) {
+        errorEl.textContent = 'Valid company email is required.';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    errorEl.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = '⏳ Creating account & generating pitch…';
+
+    try {
+        // 1. Create company via API
+        const result = await apiFetch('/api/superadmin/companies', {
+            method: 'POST',
+            body: JSON.stringify({ name: companyName })
+        });
+
+        const companyId = result.companyId;
+        const password = result.adminPassword;
+
+        // 2. Generate branded pitch email
+        const domain = email.split('@')[1];
+        const logoUrl = 'https://logo.clearbit.com/' + domain;
+        const colors = await extractColorsFromLogo(logoUrl);
+        const primary = colors[0] || '#2563eb';
+        const secondary = colors[1] || '#1e40af';
+        const accent = colors[2] || '#f59e0b';
+        const greeting = contactName ? 'Hi ' + contactName + ',' : 'Hi there,';
+
+        const pitchHtml = buildPitchEmail(greeting, companyName, domain, logoUrl, primary, secondary, accent);
+        const pitchPlain = buildPitchPlain(greeting, companyName);
+
+        // 3. Generate pre-filled login URL
+        const appUrl = 'https://ledgerman.org';
+        const loginUrl = appUrl + '?company=' + encodeURIComponent(companyName) + '&password=' + encodeURIComponent(password);
+
+        // 4. Show success screen
+        document.getElementById('unifiedInviteForm').style.display = 'none';
+        document.getElementById('unifiedSuccess').style.display = 'block';
+        document.getElementById('unifiedSuccessCompanyName').value = companyName;
+        document.getElementById('unifiedSuccessPassword').value = password;
+        document.getElementById('unifiedSuccessLoginUrl').value = loginUrl;
+        document.getElementById('unifiedSuccessPitchPreview').innerHTML = pitchHtml;
+
+        // Store for copy functions
+        window._unifiedPitchHtml = pitchHtml;
+        window._unifiedPitchPlain = pitchPlain;
+        window._unifiedEmail = email;
+
+        // Set up email link
+        const emailLink = document.getElementById('unifiedEmailLink');
+        emailLink.href = 'mailto:' + encodeURIComponent(email) +
+            '?subject=' + encodeURIComponent('Streamline Your Workforce Management — Ledgerman') +
+            '&body=' + encodeURIComponent(pitchPlain);
+
+        // Refresh companies list
+        loadCompanies();
+        loadOverview();
+
+        toast('Account created and ready to invite!', 'success');
+    } catch(e) {
+        errorEl.textContent = 'Failed: ' + e.message;
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = '✉️ Create Account & Send Invite';
+    }
+}
+
+function resetUnifiedInvite() {
+    document.getElementById('unifiedInviteForm').style.display = 'block';
+    document.getElementById('unifiedSuccess').style.display = 'none';
+    document.getElementById('unifiedCompanyName').value = '';
+    document.getElementById('unifiedContactName').value = '';
+    document.getElementById('unifiedEmail').value = '';
+    document.getElementById('unifiedError').style.display = 'none';
+    document.getElementById('unifiedInviteBtn').disabled = false;
+    document.getElementById('unifiedInviteBtn').textContent = '✉️ Create Account & Send Invite';
+}
+
+function copyUnifiedPitchHtml() {
+    if (!window._unifiedPitchHtml) { toast('Generate a pitch first.', 'error'); return; }
+    try {
+        const blob = new Blob([window._unifiedPitchHtml], { type: 'text/html' });
+        const textBlob = new Blob([window._unifiedPitchHtml], { type: 'text/plain' });
+        navigator.clipboard.write([new ClipboardItem({ 'text/html': blob, 'text/plain': textBlob })]).then(
+            function() { toast('HTML pitch copied!', 'success'); },
+            function() { navigator.clipboard.writeText(window._unifiedPitchHtml).then(function() { toast('Copied as text.', 'success'); }); }
+        );
+    } catch(e) { navigator.clipboard.writeText(window._unifiedPitchHtml).then(function() { toast('Copied.', 'success'); }); }
+}
+
+function copyUnifiedPitchPlain() {
+    if (!window._unifiedPitchPlain) { toast('Generate a pitch first.', 'error'); return; }
+    navigator.clipboard.writeText(window._unifiedPitchPlain).then(function() { toast('Plain text pitch copied!', 'success'); }).catch(function() { toast('Copy failed.', 'error'); });
+}
+
 // ── Escape HTML ──────────────────────────────────────────────
 function esc(str) {
     if (!str) return '';
@@ -1467,6 +1980,7 @@ function esc(str) {
 }
 </script>
 
+<script>
 // ── Password Toggle Visibility ───────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
     const toggleButtons = document.querySelectorAll('.password-toggle');
@@ -1487,7 +2001,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
 </body>
 </html>
 <!-- Fix: Render redeploy trigger -->
 <!-- Redeploy trigger Fri Mar 20 05:14:44 PM EDT 2026 -->
+<!-- Deploy trigger: 1774129856 -->
