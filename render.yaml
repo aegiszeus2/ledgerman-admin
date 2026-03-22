@@ -1,8 +1,14 @@
-version: 1
 services:
-  - name: ledgerman-admin
-    type: static_site
-    buildCommand: "echo 'No build needed'"
-    staticPublishPath: "."
-    envVars: []
-# Admin console - Thu Mar 19 03:21:24 AM EDT 2026
+  - type: static
+    name: ledgerman-admin
+    buildCommand: ''
+    staticPublishPath: ./
+    headers:
+      - path: /index.html
+        headers:
+          - key: Cache-Control
+            value: no-cache, no-store, must-revalidate
+          - key: Pragma
+            value: no-cache
+          - key: Expires
+            value: "0"
