@@ -957,7 +957,7 @@
             app.innerHTML = `
                 <div class="admin-sidebar" id="adminSidebar">
                     <div class="sidebar-brand">
-                        <div class="brand-icon" id="sidebarLogo">L</div>
+                        <img src="LedgemanLogo.2.jpg" alt="Ledgerman" class="brand-icon" id="sidebarLogo" style="max-height:50px;object-fit:contain">
                         <span class="brand-text">${AppData.getCompanyName()}</span>
                     </div>
                     <nav>
