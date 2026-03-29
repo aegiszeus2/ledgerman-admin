@@ -140,13 +140,8 @@
                     </div>
                 </div>
             `;
-            // Load logo if exists
-            AppData.getLogo().then(logo => {
-                if (logo && logo.blob) {
-                    const url = URL.createObjectURL(logo.blob);
-                    document.getElementById('loginLogo').innerHTML = `<img src="${url}" alt="Logo" style="max-height:80px;">`;
-                }
-            }).catch(() => {});
+            // Load logo — static asset
+            document.getElementById('loginLogo').innerHTML = `<img src="assets/images/logo.jpg" alt="Ledgerman Logo" style="max-height:80px;">`;
 
             document.getElementById('workerLoginBtn').onclick = () => this.showWorkerLogin();
             document.getElementById('adminLoginBtn').onclick = () => this.showAdminLogin();
@@ -1032,15 +1027,11 @@
                 </div>
             `;
 
-            // Load logo into brand icon
-            AppData.getLogo().then(logo => {
-                if (logo && logo.blob) {
-                    const url = URL.createObjectURL(logo.blob);
-                    const el = document.getElementById('sidebarLogo');
-                    el.innerHTML = `<img src="${url}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:var(--radius-sm)">`;
-                    el.textContent = ''; // clear fallback letter
-                }
-            }).catch(() => {});
+            // Load logo into brand icon — static asset
+            const sidebarEl = document.getElementById('sidebarLogo');
+            if (sidebarEl) {
+                sidebarEl.innerHTML = `<img src="assets/images/logo.jpg" alt="Ledgerman Logo" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:var(--radius-sm)">`;
+            }
 
             // Update approval badge
             this.updateApprovalBadge();
