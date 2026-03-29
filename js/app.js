@@ -18,8 +18,17 @@
                 EmailService.init();
             }
 
-            // Check for invite link first (#invite/TOKEN)
+            // Check for emergency clear (#clear-session) — clears all storage and shows login
             const hash = window.location.hash;
+            if (hash === '#clear-session') {
+                AppData.clearPersistentLogin();
+                AppData.setJwt('');
+                window.location.hash = '';
+                this.showLogin();
+                return;
+            }
+
+            // Check for invite link first (#invite/TOKEN)
             if (hash.startsWith('#invite/')) {
                 const token = hash.slice(8);
                 WorkerInvite.show(token);
@@ -59,6 +68,11 @@
                 </div>
             `;
 
+            // 15-second timeout for persistent login restoration (prevents mobile hangs)
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Session restoration timeout')), 15000)
+            );
+
             try {
                 if (type === 'admin') {
                     // Restore admin JWT and try to sync
@@ -66,13 +80,13 @@
                     if (creds.companyId) AppData.setCompanyId(creds.companyId);
 
                     try {
-                        await AppData.syncFromServer();
+                        await Promise.race([AppData.syncFromServer(), timeoutPromise]);
                         this.currentUser = { type: 'admin', name: 'Admin' };
                         this.startAdminPanel();
                         return;
                     } catch(err) {
-                        // JWT expired or invalid — clear and show login
-                        console.log('[Ledgerman] Persistent admin JWT invalid, showing login');
+                        // JWT expired or invalid OR timeout — clear and show login
+                        console.log('[Ledgerman] Persistent admin JWT invalid or timeout, showing login');
                         AppData.clearPersistentLogin();
                         AppData.setJwt('');
                         this.showAdminLogin();
@@ -83,14 +97,14 @@
                     if (creds.companyId) AppData.setCompanyId(creds.companyId);
 
                     try {
-                        const data = await AppData.apiLoginWorkerByNameAndPin(creds.companyName, creds.workerName, creds.pin);
-                        await AppData.syncFromServer();
+                        const data = await Promise.race([AppData.apiLoginWorkerByNameAndPin(creds.companyName, creds.workerName, creds.pin), timeoutPromise]);
+                        await Promise.race([AppData.syncFromServer(), timeoutPromise]);
                         const worker = AppData.getWorker(data.worker.id) || data.worker;
                         this._completeWorkerLogin(worker, 'Restored from persistent login');
                         return;
                     } catch(err) {
-                        // Credentials invalid — clear and show login
-                        console.log('[Ledgerman] Persistent worker credentials invalid, showing login');
+                        // Credentials invalid OR timeout — clear and show login
+                        console.log('[Ledgerman] Persistent worker credentials invalid or timeout, showing login');
                         AppData.clearPersistentLogin();
                         AppData.setJwt('');
                         this.showWorkerLogin();
@@ -102,8 +116,6 @@
                 this.showLogin();
             }
         },
-
-        // ============ LOGIN SCREENS ============
 
         showLogin() {
             const app = document.getElementById('app');
@@ -989,6 +1001,18 @@
                         <a class="nav-item" data-route="task-assignment" data-tooltip="Task Assignment — assign tasks to workers">
                             <span class="nav-icon">✓</span><span class="nav-label">Task Assignment</span>
                         </a>
+                        <a class="nav-item" data-route="budget-tracking" data-tooltip="Budget Tracking — project budgets vs actual spending">
+                            <span class="nav-icon">💰</span><span class="nav-label">Budget Tracking</span>
+                        </a>
+                        <a class="nav-item" data-route="daily-reports" data-tooltip="Daily Reports — crew summaries and site conditions">
+                            <span class="nav-icon">📋</span><span class="nav-label">Daily Reports</span>
+                        </a>
+                        <a class="nav-item" data-route="punch-lists" data-tooltip="Punch Lists — deficiency tracking and sign-off">
+                            <span class="nav-icon">✓</span><span class="nav-label">Punch Lists</span>
+                        </a>
+                        <a class="nav-item" data-route="gantt-chart" data-tooltip="Project Timeline — visual schedule of tasks and milestones">
+                            <span class="nav-icon">📊</span><span class="nav-label">Project Timeline</span>
+                        </a>
                     </nav>
                 </div>
                 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
@@ -1152,10 +1176,22 @@
                 case 'help':
                     if (window.AdminHelp) AdminHelp.render(content);
                     break;
-                default:
                 case 'task-assignment':
                     if (window.AdminTaskAssignment) AdminTaskAssignment.render(content, params);
                     break;
+                case 'budget-tracking':
+                    if (window.AdminBudgetTracking) AdminBudgetTracking.render(content, params);
+                    break;
+                case 'daily-reports':
+                    if (window.AdminDailyReports) AdminDailyReports.render(content, params);
+                    break;
+                case 'punch-lists':
+                    if (window.AdminPunchLists) AdminPunchLists.render(content, params);
+                    break;
+                case 'gantt-chart':
+                    if (window.AdminGanttChart) AdminGanttChart.render(content, params);
+                    break;
+                default:
                     content.innerHTML = '<div class="empty-state"><h2>Page not found</h2></div>';
             }
 
@@ -1326,3 +1362,4 @@
         App.init();
     });
 })();
+// Trigger redeploy Sat Mar 28 11:15:21 PM EDT 2026
