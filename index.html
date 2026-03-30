@@ -2087,8 +2087,8 @@ function generateNewCompanyPassword(companyId) {
         return;
     }
     
-    const token = localStorage.getItem('x-superadmin-key');
-    fetch(`${API_HOST}/api/superadmin/companies/${companyId}/reset-password`, {
+    const token = localStorage.getItem('ls_admin_key');
+    fetch(`${API}/api/superadmin/companies/${companyId}/reset-password`, {
         method: 'POST',
         headers: { 'X-Superadmin-Key': token, 'Content-Type': 'application/json' }
     })
@@ -2098,7 +2098,7 @@ function generateNewCompanyPassword(companyId) {
             toast(`Error: ${result.error}`, 'error');
             return;
         }
-        const companyName = document.getElementById('detailCompanyName').value || 'Company';
+        const companyName = document.getElementById('detailCompanyName').textContent || 'Company';
         const msg = `New password for ${companyName}:\n\n${result.newPassword}\n\nCopy this and share with the company admin.`;
         alert(msg);
         copyToClipboard(result.newPassword);
@@ -2106,7 +2106,6 @@ function generateNewCompanyPassword(companyId) {
         setTimeout(() => location.reload(), 1000);
     })
     .catch(err => toast(`Error: ${err.message}`, 'error'));
-}
 }
 
 document.addEventListener('DOMContentLoaded', function() {
