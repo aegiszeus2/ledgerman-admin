@@ -813,6 +813,7 @@ const API = 'https://ledgeman-backend.onrender.com';
 let _key = '';
 let _companies = [];
 let _stats = null;
+let _originalPassword = '';
 
 // ── Helpers ─────────────────────────────────────────────────
 function toast(msg, type) {
@@ -1182,7 +1183,7 @@ async function openDetail(companyId) {
                     <div class="form-group">
                         <label class="label-sm">Admin Password</label>
                         <div style="position:relative">
-                            <input type="password" id="editAdminPassword" class="form-control" style="padding-right:40px">
+                            <input type="password" id="editAdminPassword" class="form-control" value="${esc(d.password || '')}" style="padding-right:40px">
                             <button type="button" class="password-toggle" data-toggle="editAdminPassword" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text2);z-index:10;pointer-events:all">Show</button>
                         </div>
                         <p style="font-size:.75rem;color:var(--text2);margin-top:4px">Leave blank to keep current password</p>
@@ -1219,6 +1220,12 @@ async function openDetail(companyId) {
 
         // Attach password toggle listeners for dynamically added elements
         attachPasswordToggleListeners();
+
+        // Store original password for change detection
+        const passwordField = document.getElementById('editAdminPassword');
+        if (passwordField) {
+            _originalPassword = passwordField.value;
+        }
 
         // Load modules data
         loadCompanyModules(companyId);
@@ -1346,9 +1353,10 @@ async function saveDetailEdit(companyId) {
         hstNumber: document.getElementById('editHstNumber').value.trim(),
     };
 
-    // Handle optional password update
+    // Handle optional password update (only if changed from original)
     const newPassword = document.getElementById('editAdminPassword').value.trim();
-    if (newPassword) {
+    const passwordChanged = newPassword !== _originalPassword.trim();
+    if (newPassword && passwordChanged) {
         updates.adminPassword = newPassword;
     }
 
@@ -1371,7 +1379,7 @@ async function saveDetailEdit(companyId) {
         );
 
         if (result.success) {
-            toast('Company details updated successfully' + (newPassword ? ' and password changed' : ''), 'success');
+            toast('Company details updated successfully' + (passwordChanged ? ' and password changed' : ''), 'success');
 
             // Update display with new values
             document.getElementById('detailCompanyName').textContent = esc(updates.companyName);
