@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Ledgerman Super Admin — LittleShield</title>
-<!-- CACHE BUSTER: 2026-03-30T14:48 -->
+<!-- CACHE BUSTER: 2026-03-30T17:10 -->
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1050,8 +1050,11 @@ function renderCompaniesTable(list) {
                 <br><span class="text-sm text-muted" style="font-family:monospace">${c.id}</span>
             </td>
             <td>
-                <code style="font-size:12px;background:#f5f5f5;color:#000;padding:4px 6px;border-radius:3px;word-break:break-all">${esc(c.password)}</code>
-                <br><span style="font-size:11px;color:var(--text2)">🔐 Click "Edit Details" to change</span>
+                <div style="display:flex;gap:6px;align-items:flex-start">
+                    <code style="font-size:12px;background:#f5f5f5;color:#000;padding:4px 6px;border-radius:3px;word-break:break-all;flex:1">${esc(c.password)}</code>
+                    <button type="button" class="btn-ghost btn-sm" onclick="event.stopPropagation();copyToClipboard('${c.password}')" style="white-space:nowrap;margin-top:2px">📋</button><button type="button" class="btn-ghost btn-sm" onclick="event.stopPropagation();generateNewCompanyPassword('${c.id}')" style="white-space:nowrap;margin-top:2px">🔄</button>
+                </div>
+                <span style="font-size:11px;color:var(--text2)">🔐 Click "Edit Details" to change</span>
             </td>
             <td>${c.workers}</td>
             <td>${c.projects}</td>
@@ -1127,6 +1130,7 @@ async function openDetail(companyId) {
                 <div class="card" style="margin-bottom:12px">
                     <div class="card-title mb-1">Company Settings</div>
                     <div class="text-sm">
+                        <div class="flex-between" style="margin-bottom:8px"><span class="text-muted">Admin Password</span><div style="display:flex;gap:8px;align-items:center"><code style="background:#f5f5f5;color:#000;padding:4px 6px;border-radius:3px;font-size:12px">${esc(d.password || '—')}</code><button type="button" class="btn-ghost btn-sm" onclick="copyToClipboard('${d.password}')" style="white-space:nowrap">📋 Copy</button><button type="button" class="btn-ghost btn-sm" onclick="generateNewCompanyPassword('${d.id}')" style="white-space:nowrap">🔄 Generate New</button></div></div>
                         <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Company Name</span><span id="detailCompanyName">${esc(d.settings.companyName || d.name || '—')}</span></div>
                         <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Email</span><span id="detailEmail">${esc(d.settings.email || '—')}</span></div>
                         <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Phone</span><span id="detailPhone">${esc(d.settings.phone || '—')}</span></div>
@@ -2077,6 +2081,32 @@ function handlePasswordToggleEvent(e) {
             }
         }
     }
+
+function generateNewCompanyPassword(companyId) {
+    if (!confirm('Generate a new password for this company? Share it with the client.')) {
+        return;
+    }
+    
+    const token = localStorage.getItem('x-superadmin-key');
+    fetch(`${API_HOST}/api/superadmin/companies/${companyId}/reset-password`, {
+        method: 'POST',
+        headers: { 'X-Superadmin-Key': token, 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.error) {
+            toast(`Error: ${result.error}`, 'error');
+            return;
+        }
+        const companyName = document.getElementById('detailCompanyName').value || 'Company';
+        const msg = `New password for ${companyName}:\n\n${result.newPassword}\n\nCopy this and share with the company admin.`;
+        alert(msg);
+        copyToClipboard(result.newPassword);
+        toast('New password generated and copied to clipboard', 'success');
+        setTimeout(() => location.reload(), 1000);
+    })
+    .catch(err => toast(`Error: ${err.message}`, 'error'));
+}
 }
 
 document.addEventListener('DOMContentLoaded', function() {
