@@ -1215,6 +1215,9 @@ async function openDetail(companyId) {
             </div>
         `;
 
+        // Attach password toggle listeners for dynamically added elements
+        attachPasswordToggleListeners();
+
         // Load modules data
         loadCompanyModules(companyId);
     } catch(e) {
@@ -1325,6 +1328,8 @@ function confirmDetailEdit(companyId) {
     // User confirmed edit intent — show editable fields
     document.getElementById('detailEditConfirmation').style.display = 'none';
     document.getElementById('detailEditFields').style.display = 'block';
+    // Attach password toggle listeners for edit form
+    attachPasswordToggleListeners();
 }
 
 async function saveDetailEdit(companyId) {
@@ -2040,24 +2045,33 @@ function esc(str) {
 
 <script>
 // ── Password Toggle Visibility ───────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
+function attachPasswordToggleListeners() {
     const toggleButtons = document.querySelectorAll('.password-toggle');
     toggleButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const fieldId = this.getAttribute('data-toggle');
-            const field = document.getElementById(fieldId);
-            if (field) {
-                if (field.type === 'password') {
-                    field.type = 'text';
-                    this.textContent = 'Hide';
-                } else {
-                    field.type = 'password';
-                    this.textContent = 'Show';
-                }
-            }
-        });
+        // Remove existing listener to avoid duplicates
+        button.removeEventListener('click', handlePasswordToggle);
+        // Attach listener
+        button.addEventListener('click', handlePasswordToggle);
     });
+}
+
+function handlePasswordToggle(e) {
+    e.preventDefault();
+    const fieldId = this.getAttribute('data-toggle');
+    const field = document.getElementById(fieldId);
+    if (field) {
+        if (field.type === 'password') {
+            field.type = 'text';
+            this.textContent = 'Hide';
+        } else {
+            field.type = 'password';
+            this.textContent = 'Show';
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    attachPasswordToggleListeners();
 });
 </script>
 
