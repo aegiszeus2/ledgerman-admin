@@ -304,6 +304,8 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
     font-weight: 600;
     padding: 4px 6px;
     transition: color .2s;
+    z-index: 10;
+    pointer-events: all;
 }
 .password-toggle:hover {
     color: var(--primary);
@@ -1181,7 +1183,7 @@ async function openDetail(companyId) {
                         <label class="label-sm">Admin Password</label>
                         <div style="position:relative">
                             <input type="password" id="editAdminPassword" class="form-control" style="padding-right:40px">
-                            <button type="button" class="password-toggle" data-toggle="editAdminPassword" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text2)">Show</button>
+                            <button type="button" class="password-toggle" data-toggle="editAdminPassword" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text2);z-index:10;pointer-events:all">Show</button>
                         </div>
                         <p style="font-size:.75rem;color:var(--text2);margin-top:4px">Leave blank to keep current password</p>
                     </div>
