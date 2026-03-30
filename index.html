@@ -1177,6 +1177,14 @@ async function openDetail(companyId) {
                         <label class="label-sm">HST Number</label>
                         <input type="text" id="editHstNumber" class="form-control" value="${esc(d.settings.hstNumber || '')}">
                     </div>
+                    <div class="form-group">
+                        <label class="label-sm">Admin Password</label>
+                        <div style="position:relative">
+                            <input type="password" id="editAdminPassword" class="form-control" style="padding-right:40px">
+                            <button type="button" class="password-toggle" data-toggle="editAdminPassword" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text2)">Show</button>
+                        </div>
+                        <p style="font-size:.75rem;color:var(--text2);margin-top:4px">Leave blank to keep current password</p>
+                    </div>
                     <div style="display:flex;gap:8px">
                         <button class="btn btn-secondary btn-sm" onclick="cancelDetailEdit()">Cancel</button>
                         <button class="btn btn-gold btn-sm" onclick="saveDetailEdit('${d.id}')">Save Changes</button>
@@ -1331,6 +1339,12 @@ async function saveDetailEdit(companyId) {
         hstNumber: document.getElementById('editHstNumber').value.trim(),
     };
 
+    // Handle optional password update
+    const newPassword = document.getElementById('editAdminPassword').value.trim();
+    if (newPassword) {
+        updates.adminPassword = newPassword;
+    }
+
     // Validate required fields
     if (!updates.companyName) {
         toast('Company name is required', 'error');
@@ -1338,7 +1352,7 @@ async function saveDetailEdit(companyId) {
     }
 
     document.getElementById('detailEditBtn').disabled = true;
-    
+
     try {
         const result = await apiFetch(
             '/api/superadmin/companies/' + companyId,
@@ -1350,8 +1364,8 @@ async function saveDetailEdit(companyId) {
         );
 
         if (result.success) {
-            toast('Company details updated successfully', 'success');
-            
+            toast('Company details updated successfully' + (newPassword ? ' and password changed' : ''), 'success');
+
             // Update display with new values
             document.getElementById('detailCompanyName').textContent = esc(updates.companyName);
             document.getElementById('detailEmail').textContent = esc(updates.email || '—');
@@ -1361,10 +1375,13 @@ async function saveDetailEdit(companyId) {
             document.getElementById('detailProvince').textContent = esc(updates.province || '—');
             document.getElementById('detailPostalCode').textContent = esc(updates.postalCode || '—');
             document.getElementById('detailHstNumber').textContent = esc(updates.hstNumber || '—');
-            
+
             // Also update title if company name changed
             document.getElementById('detailTitle').textContent = updates.companyName;
-            
+
+            // Clear password field on success
+            document.getElementById('editAdminPassword').value = '';
+
             // Hide edit UI and restore view
             cancelDetailEdit();
         } else {
