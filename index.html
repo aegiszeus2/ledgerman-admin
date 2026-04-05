@@ -559,6 +559,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
                 <h2 style="font-size:1.25rem">All Companies</h2>
                 <div style="display:flex;gap:8px">
                     <button class="btn btn-primary btn-sm" onclick="openCreateCompanyModal()">+ Create Company</button>
+                    <button class="btn btn-secondary btn-sm" onclick="downloadFullBackup()">💾 Full Backup</button>
                     <button class="btn btn-primary btn-sm" onclick="refreshCompanies()">↻ Refresh</button>
                 </div>
             </div>
@@ -1062,6 +1063,7 @@ function renderCompaniesTable(list) {
             <td><span class="badge badge-gold">${c.plan}</span></td>
             <td onclick="event.stopPropagation()">
                 <button class="btn btn-secondary btn-sm" onclick="runDiagnosticsFor('${c.id}')">🛡️ Diag</button>
+                <button class="btn btn-secondary btn-sm" onclick="downloadCompanyBackup('${c.id}','${esc(c.name)}')" title="Download backup for this company">💾 Backup</button>
                 <button class="btn btn-danger btn-sm" onclick="deleteCompany('${c.id}','${esc(c.name)}')">🗑</button>
             </td>
         </tr>
@@ -1307,6 +1309,52 @@ async function submitCreateCompany() {
         errorEl.style.display = 'block';
         submitBtn.disabled = false;
         submitBtn.textContent = 'Create Company';
+    }
+}
+
+async function downloadCompanyBackup(companyId, companyName) {
+    toast('Preparing backup for ' + companyName + '…', 'info');
+    try {
+        const res = await fetch(API + '/api/superadmin/backup?company_id=' + encodeURIComponent(companyId), {
+            headers: { 'X-Superadmin-Key': _key }
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const date = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = 'ledgerman-backup-' + companyName.replace(/\s+/g, '-') + '-' + date + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast('Backup downloaded for ' + companyName, 'success');
+    } catch(e) {
+        toast('Backup failed: ' + e.message, 'error');
+    }
+}
+
+async function downloadFullBackup() {
+    toast('Preparing full system backup…', 'info');
+    try {
+        const res = await fetch(API + '/api/superadmin/backup', {
+            headers: { 'X-Superadmin-Key': _key }
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const date = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = 'ledgerman-full-backup-' + date + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast('Full backup downloaded', 'success');
+    } catch(e) {
+        toast('Backup failed: ' + e.message, 'error');
     }
 }
 
