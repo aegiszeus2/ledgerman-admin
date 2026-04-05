@@ -1414,6 +1414,7 @@ async function saveDetailEdit(companyId) {
 }
 
 // ── Modules ───────────────────────────────────────────────────
+// ── Modules ───────────────────────────────────────────────────
 async function loadCompanyModules(companyId) {
     const loadingEl = document.getElementById('modulesLoading');
     const contentEl = document.getElementById('modulesContent');
@@ -1422,7 +1423,8 @@ async function loadCompanyModules(companyId) {
         const moduleData = await apiFetch(`/api/superadmin/companies/${companyId}/modules`);
         const registryData = await apiFetch('/api/superadmin/modules');
 
-        const modules = moduleData.modules || {};
+        const permittedModules = moduleData.permitted_modules || {};  // Super admin's permission gate
+        const enabledModules = moduleData.modules || {};              // Company's current enabled state
         const registry = registryData.registry || {};
 
         // Group modules by category
@@ -1434,16 +1436,25 @@ async function loadCompanyModules(companyId) {
             'accounting': { label: '💰 Accounting', modules: [] },
         };
 
-        // Populate categories
+        // Populate categories — use permitted_modules (super admin control)
         Object.entries(registry).forEach(([key, spec]) => {
             const category = spec.category || 'other';
             if (categories[category]) {
-                categories[category].modules.push({ key, spec, enabled: modules[key] || false });
+                categories[category].modules.push({ 
+                    key, 
+                    spec, 
+                    permitted: permittedModules[key] !== false,  // Super admin permission (default: true if not set)
+                    enabled: enabledModules[key] || false        // Company's enabled state (read-only here)
+                });
             }
         });
 
         // Render modules by category
         let html = '';
+        html += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px">';
+        html += '<div style="font-weight:600;color:var(--primary);margin-bottom:8px;font-size:.9rem">🔐 Super Admin: Control Module Access</div>';
+        html += '<div class="text-sm text-muted" style="margin-bottom:12px">Toggle to permit/deny access. Company can only enable modules you permit here.</div>';
+
         Object.values(categories).forEach(cat => {
             if (cat.modules.length) {
                 html += `
@@ -1452,11 +1463,15 @@ async function loadCompanyModules(companyId) {
                         <div style="display:flex;flex-direction:column;gap:4px">
                 `;
                 cat.modules.forEach(m => {
+                    const moduleId = `permitted_${m.key}`;
                     html += `
-                        <div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--bg3);border-radius:4px">
-                            <input type="checkbox" id="module_${m.key}" ${m.enabled ? 'checked' : ''} onchange="toggleModule('${companyId}','${m.key}',this.checked)">
+                        <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg3);border-radius:4px;border-left:3px solid ${m.permitted ? 'var(--success)' : 'var(--warning)'}">
+                            <input type="checkbox" id="${moduleId}" ${m.permitted ? 'checked' : ''} onchange="togglePermittedModule('${companyId}','${m.key}',this.checked)">
                             <div style="flex:1">
-                                <label for="module_${m.key}" style="cursor:pointer;font-weight:500;font-size:.9rem;margin:0">${m.spec.name}</label>
+                                <div style="display:flex;align-items:center;gap:6px">
+                                    <label for="${moduleId}" style="cursor:pointer;font-weight:500;font-size:.9rem;margin:0">${m.spec.name}</label>
+                                    ${m.enabled ? '<span class="badge badge-blue" style="font-size:.7rem">enabled by company</span>' : ''}
+                                </div>
                                 <div style="font-size:.75rem;color:var(--text2);margin-top:2px">${m.spec.description}</div>
                             </div>
                         </div>
@@ -1465,6 +1480,8 @@ async function loadCompanyModules(companyId) {
                 html += '</div></div>';
             }
         });
+
+        html += '</div>';
 
         // Add custom module section
         html += `
@@ -1483,38 +1500,40 @@ async function loadCompanyModules(companyId) {
     }
 }
 
-async function toggleModule(companyId, moduleKey, enabled) {
-    const checkbox = document.getElementById(`module_${moduleKey}`);
+async function togglePermittedModule(companyId, moduleKey, permitted) {
+    const checkbox = document.getElementById(`permitted_${moduleKey}`);
     const originalState = checkbox.checked;
 
     try {
         // Disable checkbox while saving (visual feedback)
         checkbox.disabled = true;
 
-        // Fetch current modules
+        // Fetch current permitted modules
         const data = await apiFetch(`/api/superadmin/companies/${companyId}/modules`);
-        const modules = data.modules || {};
-        modules[moduleKey] = enabled;
+        const permittedModules = data.permitted_modules || {};
+        
+        // Update the permission
+        permittedModules[moduleKey] = permitted;
 
-        // Send PATCH to update
-        const result = await apiFetch(`/api/superadmin/companies/${companyId}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ modules })
+        // Send PUT to /api/superadmin/companies/{companyId}/modules to set permitted_modules
+        const result = await apiFetch(`/api/superadmin/companies/${companyId}/modules`, {
+            method: 'PUT',
+            body: JSON.stringify({ permitted_modules: permittedModules })
         });
 
         checkbox.disabled = false;
 
-        if (result.success) {
+        if (result.companyId) {  // Success response has companyId
             // Briefly highlight to show success
             checkbox.parentElement.style.background = 'var(--success-light)';
             setTimeout(() => {
                 checkbox.parentElement.style.background = 'var(--bg3)';
             }, 500);
-            toast(`✓ ${enabled ? 'Enabled' : 'Disabled'}`, 'success');
+            toast(`✓ ${permitted ? 'Permitted' : 'Denied'}`, 'success');
         } else {
             checkbox.checked = originalState;
             checkbox.disabled = false;
-            toast('Failed to update module', 'error');
+            toast('Failed to update module permission', 'error');
         }
     } catch(e) {
         checkbox.checked = originalState;
