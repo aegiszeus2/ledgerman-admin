@@ -2392,8 +2392,14 @@ function initAIAdmin() {
         '  </div>',
         '  <span style="font-size:.78rem;color:var(--text2,#6b7280)">Thinking...</span>',
         '</div>',
-        '<div style="padding:10px 12px;border-top:1px solid var(--border,#dde4e0);display:flex;gap:6px;align-items:flex-end;flex-shrink:0">',
-        '  <textarea id="aiAdminInput" rows="1" placeholder="Ask anything about the platform..." style="flex:1;resize:none;border:1px solid var(--border,#dde4e0);border-radius:10px;padding:9px 12px;font-size:.875rem;font-family:inherit;line-height:1.4;outline:none;max-height:120px;overflow-y:auto;background:var(--bg,#fff);color:var(--text,#1a1a1a)"></textarea>',
+        '<div style="padding:8px 12px 0;border-top:1px solid var(--border,#dde4e0);flex-shrink:0">',
+        '  <button id="aiAdminMicBtn" style="width:100%;padding:9px;border-radius:10px;border:2px solid var(--primary,#1a6b3a);background:#fff;color:var(--primary,#1a6b3a);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-size:.85rem;font-weight:600;font-family:inherit;transition:background .15s,color .15s">',
+        '    <svg id="aiAdminMicIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>',
+        '    <span id="aiAdminMicLabel">Tap to speak</span>',
+        '  </button>',
+        '</div>',
+        '<div style="padding:8px 12px 10px;display:flex;gap:6px;align-items:flex-end;flex-shrink:0">',
+        '  <textarea id="aiAdminInput" rows="1" placeholder="Or type here..." style="flex:1;resize:none;border:1px solid var(--border,#dde4e0);border-radius:10px;padding:9px 12px;font-size:.875rem;font-family:inherit;line-height:1.4;outline:none;max-height:120px;overflow-y:auto;background:var(--bg,#fff);color:var(--text,#1a1a1a)"></textarea>',
         '  <button id="aiAdminSendBtn" style="flex-shrink:0;width:38px;height:38px;border-radius:50%;background:var(--primary,#1a6b3a);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s">',
         '    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
         '  </button>',
@@ -2425,6 +2431,103 @@ function initAIAdmin() {
         inputEl.style.height = 'auto';
         inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
     });
+
+    // ── Mic / Voice-to-text ──────────────────────────────────────────────────
+    var _saMediaRecorder = null;
+    var _saAudioChunks = [];
+    var _saRecording = false;
+    var _saRelayUrl = '';
+
+    function _saFetchRelayUrl(cb) {
+        if (_saRelayUrl) { cb(_saRelayUrl); return; }
+        fetch(API + '/api/superadmin/platform-config', {
+            headers: { 'X-Superadmin-Key': _key }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            _saRelayUrl = (d.ai_relay_url || '').trim();
+            cb(_saRelayUrl);
+        })
+        .catch(function() { cb(''); });
+    }
+
+    var micBtn = document.getElementById('aiAdminMicBtn');
+    if (micBtn) {
+        micBtn.addEventListener('click', function() {
+            if (_saRecording) {
+                _saMediaRecorder.stop();
+            } else {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    _aiAddMessage('assistant', '⚠️ Microphone not supported in this browser.');
+                    return;
+                }
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+                    _saAudioChunks = [];
+                    _saMediaRecorder = new MediaRecorder(stream);
+
+                    _saMediaRecorder.ondataavailable = function(e) {
+                        if (e.data && e.data.size > 0) _saAudioChunks.push(e.data);
+                    };
+
+                    _saMediaRecorder.onstop = function() {
+                        stream.getTracks().forEach(function(t) { t.stop(); });
+                        _saRecording = false;
+                        micBtn.style.background = '#fff';
+                        micBtn.style.color = 'var(--primary,#1a6b3a)';
+                        micBtn.style.border = '2px solid var(--primary,#1a6b3a)';
+                        var micLbl = document.getElementById('aiAdminMicLabel');
+                        if (micLbl) micLbl.textContent = 'Tap to speak';
+
+                        var inp = document.getElementById('aiAdminInput');
+                        if (inp) inp.placeholder = 'Transcribing...';
+
+                        var mimeType = _saMediaRecorder.mimeType || 'audio/webm';
+                        var blob = new Blob(_saAudioChunks, { type: mimeType });
+
+                        _saFetchRelayUrl(function(relayUrl) {
+                            var transcribeUrl = relayUrl
+                                ? relayUrl + '/transcribe'
+                                : 'http://localhost:9999/transcribe';
+                            fetch(transcribeUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': mimeType },
+                                body: blob
+                            })
+                            .then(function(r) { return r.json(); })
+                            .then(function(d) {
+                                if (inp) inp.placeholder = 'Or type here...';
+                                if (d.transcript) {
+                                    if (inp) {
+                                        inp.value = d.transcript;
+                                        inp.style.height = 'auto';
+                                        inp.style.height = Math.min(inp.scrollHeight, 120) + 'px';
+                                        inp.focus();
+                                    }
+                                } else {
+                                    _aiAddMessage('assistant', '⚠️ Could not transcribe audio. Try again.');
+                                }
+                            })
+                            .catch(function() {
+                                if (inp) inp.placeholder = 'Or type here...';
+                                _aiAddMessage('assistant', '⚠️ Transcription service unreachable.');
+                            });
+                        });
+                    };
+
+                    _saMediaRecorder.start();
+                    _saRecording = true;
+                    micBtn.style.background = '#dc2626';
+                    micBtn.style.color = '#fff';
+                    micBtn.style.border = '2px solid #dc2626';
+                    var micLbl2 = document.getElementById('aiAdminMicLabel');
+                    if (micLbl2) micLbl2.textContent = 'Recording… tap to stop';
+
+                }).catch(function(err) {
+                    _aiAddMessage('assistant', '⚠️ Mic access denied: ' + err.message);
+                });
+            }
+        });
+    }
 
     // Welcome message
     _aiAddMessage('assistant', 'Hi! I\'m your Super Admin AI. I can help you manage companies, view platform stats, and more.\n\n• "How many companies are active?"\n• "Create a new company called Smith Construction"\n• "Show me all trial companies"\n• "Delete company Patriquin Construction"');
