@@ -1061,7 +1061,7 @@ function renderCompaniesTable(list) {
             <td>${c.workers}</td>
             <td>${c.projects}</td>
             <td class="text-sm text-muted">${timeAgo(c.lastActivity)}</td>
-            <td><span class="badge badge-gold">${c.plan}</span></td>
+            <td><span class="badge ${c.isTrial ? 'badge-gold' : 'badge-green'}">${c.isTrial ? 'Trial' : 'Unlimited'}</span></td>
             <td onclick="event.stopPropagation()">
                 <button class="btn btn-secondary btn-sm" onclick="runDiagnosticsFor('${c.id}')">🛡️ Diag</button>
                 <button class="btn btn-secondary btn-sm" onclick="downloadCompanyBackup('${c.id}','${esc(c.name)}')" title="Download backup for this company">💾 Backup</button>
@@ -1218,6 +1218,26 @@ async function openDetail(companyId) {
                 </div>
             </div>
 
+            <div class="card" style="margin-bottom:12px">
+                <div class="card-title mb-1">Access Control</div>
+                <div id="accessStatusRow" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                    <div class="text-sm">
+                        <div style="margin-bottom:4px">
+                            <span class="text-muted">Status: </span>
+                            <span id="accessBadge" class="badge ${d.isTrial ? 'badge-gold' : 'badge-green'}">${d.isTrial ? 'Trial' : 'Unlimited'}</span>
+                        </div>
+                        ${d.isTrial && d.trialStartDate ? `<div class="text-muted" style="font-size:0.8rem">
+                            Trial started: ${d.trialStartDate}<br>
+                            Expires: ${(()=>{ const e=new Date(d.trialStartDate); e.setDate(e.getDate()+30); return e.toISOString().slice(0,10); })()}
+                        </div>` : d.isTrial ? '<div class="text-muted" style="font-size:0.8rem">Trial starts on first login</div>' : '<div class="text-muted" style="font-size:0.8rem">Full access — no expiry</div>'}
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary btn-sm" onclick="setCompanyAccess('${d.id}','unlimited')" ${!d.isTrial ? 'disabled' : ''}>✅ Grant Unlimited</button>
+                    <button class="btn btn-secondary btn-sm" onclick="setCompanyAccess('${d.id}','trial')" ${d.isTrial ? 'disabled' : ''}>⏱ Set Trial (30 days)</button>
+                </div>
+            </div>
+
             <div style="display:flex;flex-direction:column;gap:8px">
                 <button class="btn btn-primary" id="detailEditBtn" onclick="initDetailEdit()">🔒 Edit Details</button>
                 <button class="btn btn-secondary" onclick="runDiagnosticsFor('${d.id}')">🛡️ Run LittleShield Diagnostics</button>
@@ -1369,6 +1389,23 @@ async function deleteCompany(id, name) {
         loadOverview();
     } catch(e) {
         toast('Delete failed: ' + e.message, 'error');
+    }
+}
+
+// ── Company Access Control ──────────────────────────────────────────
+async function setCompanyAccess(companyId, accessType) {
+    const label = accessType === 'unlimited' ? 'Unlimited (paid)' : 'Trial (30 days from today)';
+    if (!confirm(`Set access to "${label}" for this company?`)) return;
+    try {
+        await apiFetch('/api/superadmin/companies/' + companyId + '/access', {
+            method: 'PATCH',
+            body: JSON.stringify({ accessType, trialDays: 30 })
+        });
+        toast('Access updated to ' + label, 'success');
+        openDetail(companyId);  // refresh detail panel
+        loadCompanies();        // refresh table badge
+    } catch(e) {
+        toast('Failed: ' + e.message, 'error');
     }
 }
 
