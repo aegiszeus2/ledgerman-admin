@@ -3,7 +3,7 @@
 // Legacy mode: falls back to localStorage/IndexedDB (no backend / offline)
 
 // ─── API Config ────────────────────────────────────────────────────────────
-const API_BASE = (window.LEDGERMAN_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://ledgerman-backend.onrender.com'));
+const API_BASE = (window.LEDGERMAN_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://app.ledgerman.org'));
 
 // ─── In-Memory Cache ───────────────────────────────────────────────────────
 // null = not loaded; populated after syncFromServer()
@@ -133,6 +133,13 @@ async function apiLoginAdmin(companyName, password) {
         body: JSON.stringify({ companyName: companyName, password: password })
     });
     setJwt(data.token);
+    // Extract companyId from JWT payload so isApiMode() returns true for admin sessions
+    if (data.token) {
+        try {
+            const payload = JSON.parse(atob(data.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+            if (payload.companyId) setCompanyId(payload.companyId);
+        } catch (e) { /* malformed token — ignore */ }
+    }
     return data;
 }
 
@@ -213,54 +220,79 @@ async function apiUseInvite(token, inviteData) {
 }
 
 // ─── Sync from Server ──────────────────────────────────────────────────────
+// Entities synced from server + mirrored to localStorage
+var _SYNC_ENTITY_KEYS = [
+    'workers','projects','tasks','clients','subtasks','expenses','submissions',
+    'invoices','payments','vendors','invites','estimates','auditLog','daily_reports',
+    'punch_items','equipment','equipmentLogs','notifications','budget_versions','budget_items'
+];
+
 async function syncFromServer() {
+    // Capture pre-sync localStorage for orphan recovery (items saved locally before refresh
+    // but async POST hadn't completed — rescues them after server says they're missing)
+    var _preSyncLocal = {};
+    _SYNC_ENTITY_KEYS.forEach(function(k) { _preSyncLocal[k] = getData(k) || []; });
+
     try {
         const data = await _apiFetch('/api/sync');
         _cache = {
-            workers:     data.workers     || [],
-            projects:    data.projects    || [],
-            tasks:       data.tasks       || [],
-            clients:     data.clients     || [],
-            subtasks:    data.subtasks    || [],
-            expenses:    data.expenses    || [],
-            submissions: data.submissions || [],
-            invoices:    data.invoices    || [],
-            payments:    data.payments    || [],
-            vendors:     data.vendors     || [],
-            invites:     data.invites     || [],
-            auditLog:    data.auditLog    || [],
-            daily_reports: data.daily_reports || [],
-            punch_items: data.punch_items || [],
-            settings:    data.settings    || {},
+            workers:          data.workers          || [],
+            projects:         data.projects         || [],
+            tasks:            data.tasks            || [],
+            clients:          data.clients          || [],
+            subtasks:         data.subtasks         || [],
+            expenses:         data.expenses         || [],
+            submissions:      data.submissions      || [],
+            invoices:         data.invoices         || [],
+            payments:         data.payments         || [],
+            vendors:          data.vendors          || [],
+            invites:          data.invites          || [],
+            estimates:        data.estimates        || [],
+            auditLog:         data.auditLog         || [],
+            daily_reports:    data.daily_reports    || [],
+            punch_items:      data.punch_items      || [],
+            equipment:        data.equipment        || [],
+            equipmentLogs:    data.equipmentLogs    || [],
+            notifications:    data.notifications    || [],
+            budget_versions:  data.budget_versions  || [],
+            budget_items:     data.budget_items     || [],
+            settings:         data.settings         || {},
         };
         // Mirror to localStorage as offline backup
-        ['workers','projects','tasks','clients','subtasks','expenses','submissions',
-         'invoices','payments','vendors','invites','auditLog','daily_reports','punch_items'].forEach(function(key) {
-            setData(key, _cache[key]);
-        });
+        _SYNC_ENTITY_KEYS.forEach(function(key) { setData(key, _cache[key]); });
         setData('settings', _cache.settings);
         console.log('[Ledgerman] Synced from server. Workers:', _cache.workers.length,
             'Projects:', _cache.projects.length, 'Tasks:', _cache.tasks.length, 'Submissions:', _cache.submissions.length);
+
+        // ── Orphan recovery ──────────────────────────────────────────────────
+        // If an item was saved locally but the server confirms it's missing (async race),
+        // add it back to cache immediately and re-push to backend.
+        if (isApiMode() && getJwt()) {
+            var _orphanTypes = ['projects','tasks','clients','subtasks','expenses',
+                'invoices','payments','vendors','estimates','daily_reports','punch_items',
+                'equipment','equipmentLogs','budget_versions','budget_items'];
+            _orphanTypes.forEach(function(key) {
+                var serverIds = new Set((_cache[key] || []).map(function(i) { return i.id; }));
+                (_preSyncLocal[key] || []).forEach(function(localItem) {
+                    if (localItem && localItem.id && !serverIds.has(localItem.id)) {
+                        console.log('[Ledgerman] Recovering orphaned ' + key + ' item:', localItem.id);
+                        if (_cache[key]) { _cache[key].push(localItem); setData(key, _cache[key]); }
+                        _apiFetch('/api/' + key, { method: 'POST', body: JSON.stringify(localItem) })
+                            .catch(function(e) {
+                                console.warn('[Ledgerman] Orphan recovery failed ' + key + ':', e.message);
+                            });
+                    }
+                });
+            });
+        }
+
         return _cache;
     } catch (e) {
         console.warn('[Ledgerman] Sync failed — using localStorage fallback:', e.message);
-        // Fall back to localStorage
-        _cache = {
-            workers:     getData('workers')     || [],
-            projects:    getData('projects')    || [],
-            clients:     getData('clients')     || [],
-            subtasks:    getData('subtasks')    || [],
-            expenses:    getData('expenses')    || [],
-            submissions: getData('submissions') || [],
-            invoices:    getData('invoices')    || [],
-            payments:    getData('payments')    || [],
-            vendors:     getData('vendors')     || [],
-            invites:     getData('invites')     || [],
-            auditLog:    getData('auditLog')    || [],
-            daily_reports: getData('daily_reports') || [],
-            punch_items: getData('punch_items') || [],
-            settings:    getData('settings')    || {},
-        };
+        // Fall back to localStorage (populate all keys including tasks which was previously missing)
+        _cache = {};
+        _SYNC_ENTITY_KEYS.forEach(function(k) { _cache[k] = getData(k) || []; });
+        _cache.settings = getData('settings') || {};
         return _cache;
     }
 }
@@ -332,6 +364,72 @@ function remove(entity, id) {
     }
 }
 
+/**
+ * saveEntityAsync(entity, item)
+ * Confirmed-persistence save for entities that use the generic /api/<entity> endpoint.
+ * - In API mode: awaits the server POST. On success, updates local cache. On failure, throws.
+ *   The caller must NOT close the form until this resolves.
+ * - In offline mode: falls through to synchronous save() immediately.
+ */
+async function saveEntityAsync(entity, item) {
+    if (isApiMode() && getJwt() && entity !== 'auditLog') {
+        // Server write FIRST — only update cache on confirmed success
+        let resp;
+        try {
+            resp = await _apiFetch('/api/' + entity, {
+                method: 'POST',
+                body: JSON.stringify(item)
+            });
+        } catch (e) {
+            throw new Error(e.message || 'Server unreachable');
+        }
+        if (resp && resp.error) {
+            throw new Error(resp.error);
+        }
+        // Confirmed — now update local cache
+        var items = _getList(entity);
+        var idx = items.findIndex(function(x) { return x.id === item.id; });
+        if (idx >= 0) items[idx] = item;
+        else items.push(item);
+        _setList(entity, items);
+        return item;
+    }
+    // Offline fallback — synchronous local save
+    return save(entity, item);
+}
+
+/**
+ * saveWorkerAsync(w)
+ * Confirmed-persistence save for workers (dedicated /api/workers endpoint).
+ * Same contract as saveEntityAsync: awaits server, updates cache on success, throws on failure.
+ */
+async function saveWorkerAsync(w) {
+    var normalized = _normalizeWorker(w);
+    if (isApiMode() && getJwt()) {
+        var items = _getList('workers');
+        var isNew = items.findIndex(function(x) { return x.id === normalized.id; }) < 0;
+        let resp;
+        try {
+            resp = await _apiFetch('/api/workers' + (isNew ? '' : '/' + normalized.id), {
+                method: isNew ? 'POST' : 'PUT',
+                body: JSON.stringify(normalized)
+            });
+        } catch (e) {
+            throw new Error(e.message || 'Server unreachable');
+        }
+        if (resp && resp.error) {
+            throw new Error(resp.error);
+        }
+        // Confirmed — update cache
+        if (isNew) items.push(normalized);
+        else { var idx2 = items.findIndex(function(x) { return x.id === normalized.id; }); if (idx2 >= 0) items[idx2] = normalized; }
+        _setList('workers', items);
+        return normalized;
+    }
+    // Offline fallback
+    return saveWorker(w);
+}
+
 // ─── Settings ──────────────────────────────────────────────────────────────
 function getSettings() {
     if (_cache && _cache.settings && Object.keys(_cache.settings).length > 0) {
@@ -356,6 +454,21 @@ function saveSettings(settings) {
 
 function getCompanyName() {
     return getSettings().companyName || 'My Company';
+}
+
+async function saveSettingsAsync(settings) {
+    if (isApiMode() && getJwt()) {
+        let resp;
+        try {
+            resp = await _apiFetch('/api/settings', { method: 'PUT', body: JSON.stringify(settings) });
+        } catch (e) {
+            throw new Error(e.message || 'Server unreachable');
+        }
+        if (resp && resp.error) throw new Error(resp.error);
+    }
+    if (_cache) _cache.settings = settings;
+    setData('settings', settings);
+    return settings;
 }
 
 // ─── Worker key normaliser (API returns snake_case) ────────────────────────
@@ -389,7 +502,12 @@ function saveWorker(w) {
         _apiFetch('/api/workers' + (isNew ? '' : '/' + normalized.id), {
             method: isNew ? 'POST' : 'PUT',
             body: JSON.stringify(normalized)
-        }).catch(function(e) { console.warn('[API] saveWorker:', e.message); });
+        }).catch(function(e) {
+            console.warn('[API] saveWorker:', e.message);
+            if (typeof Utils !== 'undefined' && Utils.showToast) {
+                Utils.showToast('Worker save failed: ' + e.message, 'error');
+            }
+        });
     }
     return normalized;
 }
@@ -447,6 +565,40 @@ function saveSubmission(s) { return save('submissions', s); }
 function deleteSubmission(id) { remove('submissions', id); }
 function getPendingSubmissions() { return getSubmissions().filter(function(s) { return s.status === 'Pending'; }); }
 function getWorkerSubmissions(workerId) { return getSubmissions().filter(function(s) { return s.workerId === workerId; }); }
+// ─── Estimates ─────────────────────────────────────────────────────────────
+function getEstimates() { return getAll('estimates'); }
+function getEstimate(id) { return getById('estimates', id); }
+function saveEstimate(e) { return save('estimates', e); }
+async function saveEstimateAsync(e) { return saveEntityAsync('estimates', e); }
+function deleteEstimate(id) { remove('estimates', id); }
+
+// ─── Equipment ─────────────────────────────────────────────────────────────
+function getEquipment() { return getAll('equipment'); }
+function getEquipmentItem(id) { return getById('equipment', id); }
+function saveEquipment(e) { return save('equipment', e); }
+async function saveEquipmentAsync(e) { return saveEntityAsync('equipment', e); }
+function deleteEquipment(id) { remove('equipment', id); }
+
+// ─── Equipment Logs ────────────────────────────────────────────────────────
+// Each log entry records equipment used during a time submission.
+// Fields: submissionId, equipmentId, equipmentName, projectId, workerId, date, hours, costRate, chargeOutRate, cost, revenue
+function getEquipmentLogs(projectId) {
+    return projectId
+        ? getAll('equipmentLogs').filter(function(l) { return l.projectId === projectId; })
+        : getAll('equipmentLogs');
+}
+function getEquipmentLog(id) { return getById('equipmentLogs', id); }
+function saveEquipmentLog(l) { return save('equipmentLogs', l); }
+function deleteEquipmentLog(id) { remove('equipmentLogs', id); }
+
+// ─── Notifications ────────────────────────────────────────────────────────
+// Service alerts and system notifications.
+// Fields: id, type, title, message, equipmentId, equipmentName, resolved, emailSent, createdAt
+function getNotifications() { return getAll('notifications'); }
+function getNotification(id) { return getById('notifications', id); }
+function saveNotification(n) { return save('notifications', n); }
+function deleteNotification(id) { remove('notifications', id); }
+
 
 // ─── Invoices ──────────────────────────────────────────────────────────────
 function getInvoices(projectId) { return projectId ? getAll('invoices').filter(function(i) { return i.projectId === projectId; }) : getAll('invoices'); }
@@ -458,6 +610,21 @@ function getPayments(invoiceId) { return invoiceId ? getAll('payments').filter(f
 function savePayment(p) { return save('payments', p); }
 
 // ─── Invoice number ────────────────────────────────────────────────────────
+// ─── Project Number ────────────────────────────────────────────────────────
+// Auto-generates YYYY-NNNN based on the year and existing project numbers.
+function getNextProjectNumber(year) {
+    year = year || new Date().getFullYear();
+    var prefix = String(year) + '-';
+    var maxNum = getProjects().reduce(function(max, p) {
+        if (p.projectNumber && p.projectNumber.startsWith(prefix)) {
+            var num = parseInt(p.projectNumber.slice(prefix.length));
+            if (!isNaN(num) && num > max) return num;
+        }
+        return max;
+    }, 0);
+    return prefix + String(maxNum + 1).padStart(4, '0');
+}
+
 function getNextInvoiceNumber() {
     var year = new Date().getFullYear();
     var prefix = (getSettings().invoicePrefix || 'INV').toUpperCase();
@@ -477,6 +644,60 @@ function getInvite(token) { return getInvites().find(function(i) { return i.toke
 function saveInvite(invite) { return save('invites', invite); }
 function deleteInvite(token) { _setList('invites', getInvites().filter(function(i) { return i.token !== token; })); }
 
+// ─── Budget Versions ───────────────────────────────────────────────────────
+// Budget version = a snapshot of a project budget (draft → approved baseline → revised)
+// Fields: id, projectId, version (int), status ('draft'|'approved'|'superseded'),
+//         name, totalBudget, createdAt, approvedAt, approvedBy, notes
+function getBudgetVersions(projectId) {
+    var all = getAll('budget_versions');
+    return projectId ? all.filter(function(v) { return v.projectId === projectId; }) : all;
+}
+function getBudgetVersion(id) { return getById('budget_versions', id); }
+function saveBudgetVersion(v) { return save('budget_versions', v); }
+async function saveBudgetVersionAsync(v) { return saveEntityAsync('budget_versions', v); }
+function deleteBudgetVersion(id) { remove('budget_versions', id); }
+
+// ─── Budget Items ──────────────────────────────────────────────────────────
+// Individual line items within a budget version (work items / cost breakdown)
+// Fields: id, projectId, budgetVersionId, costCode, division, description,
+//         category ('Labour'|'Material'|'Equipment'|'Subcontract'|'Other'),
+//         quantity, unit, unitCost, total, notes, createdAt, updatedAt
+function getBudgetItems(budgetVersionId) {
+    var all = getAll('budget_items');
+    return budgetVersionId ? all.filter(function(i) { return i.budgetVersionId === budgetVersionId; }) : all;
+}
+function getBudgetItem(id) { return getById('budget_items', id); }
+function saveBudgetItem(item) { return save('budget_items', item); }
+async function saveBudgetItemAsync(item) { return saveEntityAsync('budget_items', item); }
+function deleteBudgetItem(id) { remove('budget_items', id); }
+
+// ─── Submission Admin Edit ──────────────────────────────────────────────────
+/**
+ * editSubmissionAsync(submissionId, fields, reason, requireReApproval)
+ * Calls the dedicated admin-edit endpoint — records field-level diff + audit trail.
+ * Admin role required (enforced server-side). Throws on failure.
+ */
+async function editSubmissionAsync(submissionId, fields, reason, requireReApproval) {
+    const body = Object.assign({}, fields, {
+        reason: reason || '',
+        requireReApproval: !!requireReApproval
+    });
+    const resp = await _apiFetch('/api/submissions/' + submissionId + '/admin-edit', {
+        method: 'PATCH',
+        body: JSON.stringify(body)
+    });
+    if (!resp || resp.error) {
+        throw new Error(resp && resp.error ? resp.error : 'Failed to edit submission');
+    }
+    // Update local cache
+    var cached = getData('submissions');
+    var idx = cached.findIndex(function(s) { return s.id === submissionId; });
+    if (idx >= 0) cached[idx] = resp;
+    else cached.push(resp);
+    setData('submissions', cached);
+    return resp;
+}
+
 // ─── Audit Log ─────────────────────────────────────────────────────────────
 function addAuditLog(user, action, details) {
     var entry = {
@@ -489,9 +710,9 @@ function addAuditLog(user, action, details) {
     var logs = _getList('auditLog');
     logs.push(entry);
     _setList('auditLog', logs);
-    // Push to API (use /api/audit convenience endpoint)
+    // Push to API (use /api/auditLog endpoint — matches VALID_ENTITY_TYPES on server)
     if (isApiMode() && getJwt()) {
-        _apiFetch('/api/audit', {
+        _apiFetch('/api/auditLog', {
             method: 'POST',
             body: JSON.stringify({ user: user, action: action, details: details || '' })
         }).catch(function(e) { console.warn('[API] addAuditLog:', e.message); });
@@ -523,6 +744,17 @@ async function _blobToBase64(blob) {
         reader.onerror = reject;
         reader.readAsDataURL(blob instanceof Blob ? blob : new Blob([blob]));
     });
+}
+
+function _base64ToBlob(dataUrl) {
+    // Handles full data URLs (data:image/png;base64,...) or raw base64
+    var parts = dataUrl.split(',');
+    var mimeMatch = parts[0].match(/:(.*?);/);
+    var mime = mimeMatch ? mimeMatch[1] : 'image/png';
+    var raw = atob(parts[1] || parts[0]);
+    var arr = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+    return new Blob([arr], { type: mime });
 }
 
 async function savePhoto(photoData) {
@@ -601,22 +833,61 @@ async function deletePhoto(id) {
         tx.onerror = function() { reject(tx.error); };
     });
     if (isApiMode() && getJwt()) {
-        _apiFetch('/api/photos/' + id, { method: 'DELETE' })
-            .catch(function(e) { console.warn('[API] deletePhoto:', e.message); });
+        if (id === 'company_logo') {
+            _apiFetch('/api/logo', { method: 'DELETE' })
+                .catch(function(e) { console.warn('[API] deleteLogo:', e.message); });
+        } else {
+            _apiFetch('/api/photos/' + id, { method: 'DELETE' })
+                .catch(function(e) { console.warn('[API] deletePhoto:', e.message); });
+        }
     }
 }
 
 async function saveLogo(blob) {
+    // Save to IndexedDB for immediate use
     var db = await openDB();
-    return new Promise(function(resolve, reject) {
+    await new Promise(function(resolve, reject) {
         var tx = db.transaction(STORE_PHOTOS, 'readwrite');
         tx.objectStore(STORE_PHOTOS).put({ id: 'company_logo', blob: blob, type: 'logo' });
         tx.oncomplete = function() { resolve(); };
         tx.onerror = function() { reject(tx.error); };
     });
+    // Also upload to server so it persists across sessions and devices
+    if (isApiMode() && getJwt()) {
+        try {
+            var b64 = await _blobToBase64(blob);
+            await _apiFetch('/api/logo', { method: 'PUT', body: JSON.stringify({ data: b64 }) });
+        } catch(e) {
+            console.warn('[Logo] Server upload failed:', e.message);
+        }
+    }
 }
 
-async function getLogo() { return getPhoto('company_logo'); }
+async function getLogo() {
+    // Try IndexedDB first (fastest)
+    var local = await getPhoto('company_logo');
+    if (local && local.blob) return local;
+    // Fall back to server
+    if (isApiMode() && getJwt()) {
+        try {
+            var resp = await _apiFetch('/api/logo');
+            if (resp && resp.data) {
+                var blob = _base64ToBlob(resp.data);
+                // Cache in IndexedDB
+                var db2 = await openDB();
+                await new Promise(function(resolve) {
+                    var tx = db2.transaction(STORE_PHOTOS, 'readwrite');
+                    tx.objectStore(STORE_PHOTOS).put({ id: 'company_logo', blob: blob, type: 'logo' });
+                    tx.oncomplete = resolve;
+                });
+                return { id: 'company_logo', blob: blob, type: 'logo' };
+            }
+        } catch(e) {
+            // No logo on server
+        }
+    }
+    return null;
+}
 
 async function getAllPhotos() {
     var db = await openDB();
@@ -711,6 +982,7 @@ window.AppData = {
     API_BASE: API_BASE,
     // Auth / session
     getJwt, setJwt, getCompanyId, setCompanyId, isApiMode,
+    getPersistentLogin, savePersistentLogin, clearPersistentLogin,
     apiRegister, apiLoginAdmin, apiLinkDevice, apiLoginWorker, apiLoginWorkerByName, apiLoginWorkerByNameAndPin, apiVerify2FA,
     apiCreateInvite, apiGetInvite, apiUseInvite,
     syncFromServer, isCacheLoaded,
@@ -719,6 +991,9 @@ window.AppData = {
     saveLogo, getLogo, getAllPhotos, openDB,
     // Raw helpers
     getData, setData, generateId, getAll, getById, save, remove,
+    saveEntityAsync, saveWorkerAsync, saveSettingsAsync,
+    saveEstimateAsync, saveEquipmentAsync, saveBudgetVersionAsync, saveBudgetItemAsync,
+    editSubmissionAsync,
     // Settings
     getSettings, saveSettings, getCompanyName,
     // Workers
@@ -737,6 +1012,7 @@ window.AppData = {
     getSubmissions, getSubmission, saveSubmission, deleteSubmission,
     getPendingSubmissions, getWorkerSubmissions,
     // Invoices
+    getNextProjectNumber,
     getInvoices, getInvoice, saveInvoice, getNextInvoiceNumber,
     // Payments
     getPayments, savePayment,
@@ -748,6 +1024,18 @@ window.AppData = {
     isFirstRun, markSetupDone,
     // Invites
     getInvites, getInvite, saveInvite, deleteInvite,
+    // Estimates
+    getEstimates, getEstimate, saveEstimate, deleteEstimate,
+    // Equipment
+    getEquipment, getEquipmentItem, saveEquipment, deleteEquipment,
+    // Equipment Logs
+    getEquipmentLogs, getEquipmentLog, saveEquipmentLog, deleteEquipmentLog,
+    // Notifications
+    getNotifications, getNotification, saveNotification, deleteNotification,
+    // Budget Versions
+    getBudgetVersions, getBudgetVersion, saveBudgetVersion, deleteBudgetVersion,
+    // Budget Items
+    getBudgetItems, getBudgetItem, saveBudgetItem, deleteBudgetItem,
     // Backup
     exportAllData, importAllData, getLastBackupDate, setLastBackupDate, shouldRemindBackup
 };
