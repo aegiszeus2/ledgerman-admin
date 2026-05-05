@@ -109,6 +109,11 @@
                         AppData.setJwt('');
                         this.showWorkerLogin();
                     }
+                } else {
+                    // Unknown type — clear and show login to prevent stuck loading screen
+                    console.warn('[Ledgerman] Unknown persistent login type:', type);
+                    AppData.clearPersistentLogin();
+                    this.showLogin();
                 }
             } catch(err) {
                 console.error('[Ledgerman] Error restoring persistent login:', err);
@@ -945,6 +950,39 @@
 
         // ============ ADMIN PANEL ============
 
+        _buildNavHtml() {
+            const m = (AppData.getSettings().modules) || {};
+            const on = (key, def) => (m[key] !== undefined ? m[key] : def);
+            const item = (route, icon, label, tooltip, extra) =>
+                `<a class="nav-item" data-route="${route}" data-tooltip="${tooltip}"><span class="nav-icon">${icon}</span><span class="nav-label">${label}</span>${extra || ''}</a>`;
+
+            return [
+                // ── Always-on core ─────────────────────────────────────────
+                item('dashboard',      '📊', 'Dashboard',    'Dashboard — overview & quick actions'),
+                item('projects',       '🏗️', 'Projects',     'Projects — manage active jobs'),
+                item('approvals',      '✅', 'Approvals',    'Approvals — review worker time submissions', '<span class="nav-badge" id="approvalBadge" style="display:none"></span>'),
+                // ── Module-gated accounting ────────────────────────────────
+                on('invoicing',     true)  ? item('invoices',  '📄', 'Invoices',     'Invoices — create & track client invoices') : '',
+                on('bid_estimates', false) ? item('estimates', '💹', 'Bid Estimates','Estimates — bid estimates and project costing') : '',
+                // ── Always-on operations ───────────────────────────────────
+                item('expenses-review','💰', 'Expenses',     'Expenses — review worker-submitted costs'),
+                item('vendors',        '🏢', 'Vendors',      'Vendors — suppliers & subcontractors'),
+                item('clients',        '👥', 'Clients',      'Clients — your client address book'),
+                item('users',          '👷', 'Workers',      'Workers — manage team & PINs'),
+                item('photos',         '📸', 'Photos',       'Photos — job site photo log'),
+                item('reports',        '📈', 'Reports',      'Reports — cost, labour & invoice summaries'),
+                // ── Module-gated Tier 3 ────────────────────────────────────
+                on('task_assignment',  false) ? item('task-assignment', '☑️',  'Task Assignment',  'Task Assignment — assign tasks to workers') : '',
+                on('budget_tracking',  false) ? item('budget-tracking', '💹',  'Budget Tracking',  'Budget Tracking — project budgets vs actual spending') : '',
+                on('daily_reports',    false) ? item('daily-reports',   '📋',  'Supervisor Reports', 'Supervisor Reports — crew summaries and site conditions') : '',
+                on('punch_lists',      false) ? item('punch-lists',     '📌',  'Punch Lists',      'Punch Lists — deficiency tracking and sign-off') : '',
+                on('gantt_chart',      false) ? item('gantt-chart',     '📅',  'Project Timeline', 'Project Timeline — visual schedule of tasks and milestones') : '',
+                // ── Always-on last ─────────────────────────────────────────
+                item('settings', '⚙️', 'Settings', 'Settings — company info, modules, password & backups'),
+                item('help',     '❓', 'Help',      'Help — how to use Ledgerman'),
+            ].join('\n');
+        },
+
         startAdminPanel() {
             Utils.startSessionTimer(() => this.logout());
             const app = document.getElementById('app');
@@ -952,63 +990,10 @@
             app.innerHTML = `
                 <div class="admin-sidebar" id="adminSidebar">
                     <div class="sidebar-brand">
-                        <img src="LedgemanLogo.2.jpg" alt="Ledgerman" class="brand-icon" id="sidebarLogo" style="max-height:50px;object-fit:contain">
+                        <div class="brand-icon" id="sidebarLogo">L</div>
                         <span class="brand-text">${AppData.getCompanyName()}</span>
                     </div>
-                    <nav>
-                        <a class="nav-item active" data-route="dashboard" data-tooltip="Dashboard — overview & quick actions">
-                            <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
-                        </a>
-                        <a class="nav-item" data-route="projects" data-tooltip="Projects — manage active jobs">
-                            <span class="nav-icon">🏗️</span><span class="nav-label">Projects</span>
-                        </a>
-                        <a class="nav-item" data-route="approvals" data-tooltip="Approvals — review worker time submissions">
-                            <span class="nav-icon">✅</span><span class="nav-label">Approvals</span>
-                            <span class="nav-badge" id="approvalBadge" style="display:none"></span>
-                        </a>
-                        <a class="nav-item" data-route="invoices" data-tooltip="Invoices — create & track client invoices">
-                            <span class="nav-icon">📄</span><span class="nav-label">Invoices</span>
-                        </a>
-                        <a class="nav-item" data-route="expenses-review" data-tooltip="Expenses — review worker-submitted costs">
-                            <span class="nav-icon">💰</span><span class="nav-label">Expenses</span>
-                        </a>
-                        <a class="nav-item" data-route="vendors" data-tooltip="Vendors — suppliers & subcontractors">
-                            <span class="nav-icon">🏢</span><span class="nav-label">Vendors</span>
-                        </a>
-                        <a class="nav-item" data-route="clients" data-tooltip="Clients — your client address book">
-                            <span class="nav-icon">👥</span><span class="nav-label">Clients</span>
-                        </a>
-                        <a class="nav-item" data-route="users" data-tooltip="Workers — manage team & PINs">
-                            <span class="nav-icon">👷</span><span class="nav-label">Workers</span>
-                        </a>
-                        <a class="nav-item" data-route="photos" data-tooltip="Photos — job site photo log">
-                            <span class="nav-icon">📸</span><span class="nav-label">Photos</span>
-                        </a>
-                        <a class="nav-item" data-route="reports" data-tooltip="Reports — cost, labour & invoice summaries">
-                            <span class="nav-icon">📈</span><span class="nav-label">Reports</span>
-                        </a>
-                        <a class="nav-item" data-route="settings" data-tooltip="Settings — company info, password & backups">
-                            <span class="nav-icon">⚙️</span><span class="nav-label">Settings</span>
-                        </a>
-                        <a class="nav-item" data-route="help" data-tooltip="Help — how to use Ledgerman">
-                            <span class="nav-icon">❓</span><span class="nav-label">Help</span>
-                        </a>
-                        <a class="nav-item" data-route="task-assignment" data-tooltip="Task Assignment — assign tasks to workers">
-                            <span class="nav-icon">✓</span><span class="nav-label">Task Assignment</span>
-                        </a>
-                        <a class="nav-item" data-route="budget-tracking" data-tooltip="Budget Tracking — project budgets vs actual spending">
-                            <span class="nav-icon">💰</span><span class="nav-label">Budget Tracking</span>
-                        </a>
-                        <a class="nav-item" data-route="daily-reports" data-tooltip="Daily Reports — crew summaries and site conditions">
-                            <span class="nav-icon">📋</span><span class="nav-label">Daily Reports</span>
-                        </a>
-                        <a class="nav-item" data-route="punch-lists" data-tooltip="Punch Lists — deficiency tracking and sign-off">
-                            <span class="nav-icon">✓</span><span class="nav-label">Punch Lists</span>
-                        </a>
-                        <a class="nav-item" data-route="gantt-chart" data-tooltip="Project Timeline — visual schedule of tasks and milestones">
-                            <span class="nav-icon">📊</span><span class="nav-label">Project Timeline</span>
-                        </a>
-                    </nav>
+                    <nav id="adminNav">${this._buildNavHtml()}</nav>
                 </div>
                 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
                 <div class="admin-main">
@@ -1027,11 +1012,15 @@
                 </div>
             `;
 
-            // Load logo into brand icon — static asset
-            const sidebarEl = document.getElementById('sidebarLogo');
-            if (sidebarEl) {
-                sidebarEl.innerHTML = `<img src="assets/images/logo.jpg" alt="Ledgerman Logo" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:var(--radius-sm)">`;
-            }
+            // Load logo into brand icon
+            AppData.getLogo().then(logo => {
+                if (logo && logo.blob) {
+                    const url = URL.createObjectURL(logo.blob);
+                    const el = document.getElementById('sidebarLogo');
+                    el.innerHTML = `<img src="${url}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:var(--radius-sm)">`;
+                    el.textContent = ''; // clear fallback letter
+                }
+            }).catch(() => {});
 
             // Update approval badge
             this.updateApprovalBadge();
@@ -1152,6 +1141,12 @@
                 case 'invoice-create':
                     if (window.AdminInvoices) AdminInvoices.renderCreate(content, params);
                     break;
+                case 'estimates':
+                    if (window.AdminEstimates) AdminEstimates.render(content, params);
+                    break;
+                case 'estimate-detail':
+                    if (window.AdminEstimates) AdminEstimates.renderDetail(content, params.estimateId, params);
+                    break;
                 case 'users':
                     if (window.AdminUsers) AdminUsers.render(content, params);
                     break;
@@ -1160,9 +1155,6 @@
                     break;
                 case 'reports':
                     if (window.AdminReports) AdminReports.render(content);
-                    break;
-                case 'tasks':
-                    if (window.WorkerTasksScreen) WorkerTasksScreen.render(content, worker);
                     break;
                 case 'help':
                     if (window.AdminHelp) AdminHelp.render(content);
@@ -1185,6 +1177,41 @@
                 default:
                     content.innerHTML = '<div class="empty-state"><h2>Page not found</h2></div>';
             }
+
+            // Inject "? How To" help button after every page render
+            // setTimeout(300) ensures button fires after async module renders settle
+            const _helpRoute = route;
+            setTimeout(() => {
+                if (App.currentView !== _helpRoute) return; // user navigated away
+                const old = document.getElementById('pageHelpBtn');
+                if (old) old.remove();
+                if (_helpRoute !== 'help' && window.LedgermanHelp && window.LedgermanHelp[_helpRoute]) {
+                    const helpBtn = document.createElement('button');
+                    helpBtn.id = 'pageHelpBtn';
+                    helpBtn.title = 'How to use this page';
+                    helpBtn.innerHTML = '? How To';
+                    helpBtn.style.cssText = [
+                        'position:fixed',
+                        'bottom:24px',
+                        'right:24px',
+                        'z-index:888',
+                        'background:#1a3a5c',
+                        'color:#ffffff',
+                        'border:2px solid #ffffff',
+                        'border-radius:20px',
+                        'padding:9px 18px',
+                        'font-size:.85rem',
+                        'font-weight:700',
+                        'cursor:pointer',
+                        'box-shadow:0 4px 14px rgba(0,0,0,.4)',
+                        'transition:opacity .2s'
+                    ].join(';');
+                    helpBtn.onmouseenter = () => helpBtn.style.opacity = '.85';
+                    helpBtn.onmouseleave = () => helpBtn.style.opacity = '1';
+                    helpBtn.onclick = () => Utils.showHelpModal(_helpRoute);
+                    document.body.appendChild(helpBtn);
+                }
+            }, 300);
 
             // Scroll to top
             content.scrollTop = 0;
@@ -1224,10 +1251,6 @@
                         <span class="worker-nav-label">Tasks</span>
                     </a>
                     <a class="worker-nav-item" data-route="help">
-                    <a class="worker-nav-item" data-route="tasks">
-                        <span class="worker-nav-icon">✓</span>
-                        <span class="worker-nav-label">My Tasks</span>
-                    </a>
                         <span class="worker-nav-icon">❓</span>
                         <span class="worker-nav-label">Help</span>
                     </a>
@@ -1305,17 +1328,45 @@
                     if (window.WorkerHistory) WorkerHistory.render(content, worker);
                     break;
                 case 'tasks':
-                    if (window.WorkerTasksScreen) WorkerTasksScreen.render(content, worker);
-                    break;
-                case 'help':
-                case 'tasks':
                     if (window.WorkerTasks) WorkerTasks.render(content, worker, params);
                     break;
+                case 'help':
                     if (window.WorkerHelp) WorkerHelp.render(content);
                     break;
                 default:
                     content.innerHTML = '<div class="empty-state"><h2>Page not found</h2></div>';
             }
+
+            // Inject "? How To" help button for worker pages
+            // setTimeout(300) ensures button fires after async module renders settle
+            const _wHelpRoute = route;
+            setTimeout(() => {
+                if (App.currentView !== _wHelpRoute) return; // user navigated away
+                const old = document.getElementById('pageHelpBtn');
+                if (old) old.remove();
+                if (_wHelpRoute !== 'help' && window.LedgermanHelp && window.LedgermanHelp[_wHelpRoute]) {
+                    const helpBtn = document.createElement('button');
+                    helpBtn.id = 'pageHelpBtn';
+                    helpBtn.innerHTML = '? How To';
+                    helpBtn.style.cssText = [
+                        'position:fixed',
+                        'bottom:70px',
+                        'right:16px',
+                        'z-index:888',
+                        'background:#1a3a5c',
+                        'color:#ffffff',
+                        'border:2px solid #ffffff',
+                        'border-radius:20px',
+                        'padding:9px 18px',
+                        'font-size:.85rem',
+                        'font-weight:700',
+                        'cursor:pointer',
+                        'box-shadow:0 4px 14px rgba(0,0,0,.4)'
+                    ].join(';');
+                    helpBtn.onclick = () => Utils.showHelpModal(_wHelpRoute);
+                    document.body.appendChild(helpBtn);
+                }
+            }, 300);
 
             content.scrollTop = 0;
         },
@@ -1348,9 +1399,35 @@
 
     window.App = App;
 
+    // Global error handler — display errors visually so we can diagnose
+    window.onerror = function(msg, src, line, col, err) {
+        var app = document.getElementById('app');
+        if (app) {
+            app.innerHTML = '<div style="padding:2rem;color:#fff;background:#c0392b;font-family:monospace;font-size:14px">'
+                + '<h2>JS Error — please screenshot this</h2>'
+                + '<p><b>Message:</b> ' + msg + '</p>'
+                + '<p><b>File:</b> ' + src + '</p>'
+                + '<p><b>Line:</b> ' + line + ':' + col + '</p>'
+                + '<p><b>Error:</b> ' + (err ? err.stack : 'none') + '</p>'
+                + '</div>';
+        }
+        return false;
+    };
+
     // Initialize on DOM ready
     document.addEventListener('DOMContentLoaded', () => {
-        App.init();
+        try {
+            App.init();
+        } catch(e) {
+            var app = document.getElementById('app');
+            if (app) {
+                app.innerHTML = '<div style="padding:2rem;color:#fff;background:#c0392b;font-family:monospace;font-size:14px">'
+                    + '<h2>App.init() crashed — please screenshot this</h2>'
+                    + '<p>' + e.message + '</p>'
+                    + '<pre>' + e.stack + '</pre>'
+                    + '</div>';
+            }
+        }
     });
 })();
-// Trigger redeploy Sat Mar 28 11:15:21 PM EDT 2026
+// v20260329-debug
