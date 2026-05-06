@@ -323,6 +323,7 @@ window.AdminReports = {
     },
 
     _renderExpenseSummary(content) {
+        const self = this;
         const projects = AppData.getProjects();
         const esc = Utils.escapeHtml;
 
@@ -342,7 +343,11 @@ window.AdminReports = {
         function generate() {
             const projectId = content.querySelector('#expenseProjectFilter').value;
             const body = content.querySelector('#expenseReportBody');
-            const expenses = AppData.getExpenses(projectId || undefined);
+            const startDate = self._dateRange ? self._dateRange.start : '';
+            const endDate = self._dateRange ? self._dateRange.end : '';
+            let expenses = AppData.getExpenses(projectId || undefined);
+            if (startDate) expenses = expenses.filter(function(e) { return (e.date || '') >= startDate; });
+            if (endDate)   expenses = expenses.filter(function(e) { return (e.date || '') <= endDate; });
 
             if (expenses.length === 0) {
                 body.innerHTML = '<div class="card"><div class="empty"><h3>No Expenses</h3><p>No expenses found.</p></div></div>';
@@ -547,7 +552,11 @@ window.AdminReports = {
         var container = self._container;
         var projectFilterEl = container.querySelector('#expenseProjectFilter');
         var projectId = projectFilterEl ? projectFilterEl.value : '';
+        var startDate = self._dateRange ? self._dateRange.start : '';
+        var endDate = self._dateRange ? self._dateRange.end : '';
         var expenses = AppData.getExpenses(projectId || undefined);
+        if (startDate) expenses = expenses.filter(function(e) { return (e.date || '') >= startDate; });
+        if (endDate)   expenses = expenses.filter(function(e) { return (e.date || '') <= endDate; });
 
         var headers = ['Category', 'Description', 'Amount', 'Date', 'Project', 'Note'];
         var lines = [self._csvRow(headers)];
