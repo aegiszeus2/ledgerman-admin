@@ -5,6 +5,21 @@ window.AdminReports = {
     render(container) {
         const self = this;
         self._container = container;
+
+        if (!self._dateRange) {
+            const today = new Date();
+            const firstDayPrevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            const lastDayPrevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+            self._dateRange = {
+                start: firstDayPrevMonth.toISOString().slice(0, 10),
+                end: lastDayPrevMonth.toISOString().slice(0, 10)
+            };
+        }
+
+        if (!self._selectedReport) {
+            self._selectedReport = self._activeTab;
+        }
+
         self._renderReports();
     },
 
@@ -27,7 +42,28 @@ window.AdminReports = {
                     <button class="btn-secondary btn-sm" id="printReportBtn">Print Report</button>
                 </div>
             </div>
-            <div class="tabs" style="margin-bottom:16px">
+            <div class="report-controls" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:16px;padding:12px 16px;background:var(--bg2,#f5f5f5);border:1px solid var(--border,#e0e0e0);border-radius:8px">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                    <label style="font-size:0.75rem;font-weight:600;color:var(--text2)">Report</label>
+                    <select id="reportTypeSelect" style="min-width:160px">
+                        <option value="cost" ${self._selectedReport === 'cost' ? 'selected' : ''}>Cost Report</option>
+                        <option value="labor" ${self._selectedReport === 'labor' ? 'selected' : ''}>Labour Report</option>
+                        <option value="expense" ${self._selectedReport === 'expense' ? 'selected' : ''}>Expense Summary</option>
+                        <option value="invoice" ${self._selectedReport === 'invoice' ? 'selected' : ''}>Invoice Summary</option>
+                        <option value="labor-notes" ${self._selectedReport === 'labor-notes' ? 'selected' : ''}>Labor & Notes Report</option>
+                    </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                    <label style="font-size:0.75rem;font-weight:600;color:var(--text2)">Start Date</label>
+                    <input type="date" id="globalStartDate" value="${self._dateRange.start}">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                    <label style="font-size:0.75rem;font-weight:600;color:var(--text2)">End Date</label>
+                    <input type="date" id="globalEndDate" value="${self._dateRange.end}">
+                </div>
+                <button class="btn-primary btn-sm" id="applyDateBtn" style="align-self:flex-end">Apply</button>
+            </div>
+            <div class="tabs" style="display:none;margin-bottom:16px">
                 ${tabs.map(function(t) {
                     return '<button class="tab-btn ' + (self._activeTab === t.id ? 'active' : '') + '" data-tab="' + t.id + '">' + t.label + '</button>';
                 }).join('')}
@@ -46,17 +82,37 @@ window.AdminReports = {
         container.querySelectorAll('.tab-btn[data-tab]').forEach(function(tab) {
             tab.addEventListener('click', function() {
                 self._activeTab = tab.dataset.tab;
+                self._selectedReport = tab.dataset.tab;
                 self._renderReports();
             });
         });
 
-        const content = container.querySelector('#reportContent');
-        switch (self._activeTab) {
-            case 'cost': self._renderCostReport(content); break;
-            case 'labor': self._renderLaborReport(content); break;
-            case 'expense': self._renderExpenseSummary(content); break;
-            case 'invoice': self._renderInvoiceSummary(content); break;
-            case 'labor-notes': self._renderLaborNotesReport(content); break;
+        container.querySelector('#reportTypeSelect').addEventListener('change', function() {
+            self._selectedReport = this.value;
+            self._activeTab = this.value;
+            self._renderReportContent();
+        });
+
+        container.querySelector('#applyDateBtn').addEventListener('click', function() {
+            self._dateRange = {
+                start: container.querySelector('#globalStartDate').value,
+                end: container.querySelector('#globalEndDate').value
+            };
+            self._renderReportContent();
+        });
+
+        self._renderReportContent();
+    },
+
+    _renderReportContent() {
+        const self = this;
+        const content = self._container.querySelector('#reportContent');
+        switch (self._selectedReport) {
+            case 'cost':        self._renderCostReport(content);        break;
+            case 'labor':       self._renderLaborReport(content);       break;
+            case 'expense':     self._renderExpenseSummary(content);    break;
+            case 'invoice':     self._renderInvoiceSummary(content);    break;
+            case 'labor-notes': self._renderLaborNotesReport(content);  break;
         }
     },
 
@@ -165,20 +221,13 @@ window.AdminReports = {
     },
 
     _renderLaborReport(content) {
+        const self = this;
         const projects = AppData.getProjects();
         const esc = Utils.escapeHtml;
 
         content.innerHTML = `
             <div class="card" style="margin-bottom:16px">
                 <div class="form-row">
-                    <div class="form-group">
-                        <label>Start Date</label>
-                        <input type="date" id="laborStartDate">
-                    </div>
-                    <div class="form-group">
-                        <label>End Date</label>
-                        <input type="date" id="laborEndDate">
-                    </div>
                     <div class="form-group">
                         <label>Project (optional)</label>
                         <select id="laborProjectFilter">
@@ -195,8 +244,8 @@ window.AdminReports = {
         `;
 
         content.querySelector('#laborGenerateBtn').addEventListener('click', function() {
-            const startDate = content.querySelector('#laborStartDate').value;
-            const endDate = content.querySelector('#laborEndDate').value;
+            const startDate = self._dateRange.start;
+            const endDate = self._dateRange.end;
             const projectId = content.querySelector('#laborProjectFilter').value;
             const body = content.querySelector('#laborReportBody');
 
@@ -462,11 +511,9 @@ window.AdminReports = {
     _exportLaborCsv() {
         var self = this;
         var container = self._container;
-        var startDateEl = container.querySelector('#laborStartDate');
-        var endDateEl = container.querySelector('#laborEndDate');
+        var startDate = self._dateRange ? self._dateRange.start : '';
+        var endDate = self._dateRange ? self._dateRange.end : '';
         var projectFilterEl = container.querySelector('#laborProjectFilter');
-        var startDate = startDateEl ? startDateEl.value : '';
-        var endDate = endDateEl ? endDateEl.value : '';
         var projectId = projectFilterEl ? projectFilterEl.value : '';
 
         var submissions = AppData.getSubmissions().filter(function(s) {
