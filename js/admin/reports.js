@@ -117,6 +117,7 @@ window.AdminReports = {
     },
 
     _renderCostReport(content) {
+        const self = this;
         const projects = AppData.getProjects();
         const esc = Utils.escapeHtml;
 
@@ -135,9 +136,18 @@ window.AdminReports = {
 
             const project = AppData.getProject(projectId);
             const subtasks = AppData.getSubtasks(projectId);
-            const expenses = AppData.getExpenses(projectId);
+            const startDate = self._dateRange ? self._dateRange.start : '';
+            const endDate = self._dateRange ? self._dateRange.end : '';
+            const expenses = AppData.getExpenses(projectId).filter(function(e) {
+                if (startDate && (e.date || '') < startDate) return false;
+                if (endDate && (e.date || '') > endDate) return false;
+                return true;
+            });
             const submissions = AppData.getSubmissions().filter(function(s) {
-                return s.projectId === projectId && s.status === 'Approved';
+                if (s.projectId !== projectId || s.status !== 'Approved') return false;
+                if (startDate && (s.date || '') < startDate) return false;
+                if (endDate && (s.date || '') > endDate) return false;
+                return true;
             });
 
             if (subtasks.length === 0) {
@@ -477,9 +487,18 @@ window.AdminReports = {
         var projectId = select.value;
         var project = AppData.getProject(projectId);
         var subtasks = AppData.getSubtasks(projectId);
-        var expenses = AppData.getExpenses(projectId);
+        var startDate = self._dateRange ? self._dateRange.start : '';
+        var endDate = self._dateRange ? self._dateRange.end : '';
+        var expenses = AppData.getExpenses(projectId).filter(function(e) {
+            if (startDate && (e.date || '') < startDate) return false;
+            if (endDate && (e.date || '') > endDate) return false;
+            return true;
+        });
         var submissions = AppData.getSubmissions().filter(function(s) {
-            return s.projectId === projectId && s.status === 'Approved';
+            if (s.projectId !== projectId || s.status !== 'Approved') return false;
+            if (startDate && (s.date || '') < startDate) return false;
+            if (endDate && (s.date || '') > endDate) return false;
+            return true;
         });
 
         var headers = ['Project', 'Subtask', 'UOM', 'Budgeted Qty', 'Actual Qty', '% Complete', 'Budgeted Cost', 'Actual Cost', 'Variance'];
