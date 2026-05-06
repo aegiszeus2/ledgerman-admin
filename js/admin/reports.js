@@ -597,7 +597,13 @@ window.AdminReports = {
 
     _exportInvoiceCsv() {
         var self = this;
-        var invoices = AppData.getInvoices();
+        var startDate = self._dateRange ? self._dateRange.start : '';
+        var endDate = self._dateRange ? self._dateRange.end : '';
+        var invoices = AppData.getInvoices().filter(function(inv) {
+            if (startDate && (inv.date || '') < startDate) return false;
+            if (endDate && (inv.date || '') > endDate) return false;
+            return true;
+        });
 
         var headers = ['Invoice #', 'Client', 'Project', 'Issue Date', 'Due Date', 'Amount', 'Status', 'Paid Amount', 'Balance'];
         var lines = [self._csvRow(headers)];
@@ -632,7 +638,14 @@ window.AdminReports = {
     // ── End CSV Export ───────────────────────────────────────────────────────────
 
     _renderInvoiceSummary(content) {
-        const invoices = AppData.getInvoices();
+        const self = this;
+        const startDate = self._dateRange ? self._dateRange.start : '';
+        const endDate = self._dateRange ? self._dateRange.end : '';
+        const invoices = AppData.getInvoices().filter(function(inv) {
+            if (startDate && (inv.date || '') < startDate) return false;
+            if (endDate && (inv.date || '') > endDate) return false;
+            return true;
+        });
         const esc = Utils.escapeHtml;
 
         if (invoices.length === 0) {
