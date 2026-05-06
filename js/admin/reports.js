@@ -1,6 +1,5 @@
 // Admin Reports Module
 window.AdminReports = {
-    _activeTab: 'cost',
 
     render(container) {
         const self = this;
@@ -17,7 +16,7 @@ window.AdminReports = {
         }
 
         if (!self._selectedReport) {
-            self._selectedReport = self._activeTab;
+            self._selectedReport = 'cost';
         }
 
         self._renderReports();
@@ -26,13 +25,6 @@ window.AdminReports = {
     _renderReports() {
         const self = this;
         const container = self._container;
-        const tabs = [
-            { id: 'cost', label: 'Cost Report' },
-            { id: 'labor', label: 'Labor Report' },
-            { id: 'expense', label: 'Expense Summary' },
-            { id: 'invoice', label: 'Invoice Summary' },
-            { id: 'labor-notes', label: 'Labor & Notes Report' }
-        ];
 
         container.innerHTML = `
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px">
@@ -63,11 +55,6 @@ window.AdminReports = {
                 </div>
                 <button class="btn-primary btn-sm" id="applyDateBtn" style="align-self:flex-end">Apply</button>
             </div>
-            <div class="tabs" style="display:none;margin-bottom:16px">
-                ${tabs.map(function(t) {
-                    return '<button class="tab-btn ' + (self._activeTab === t.id ? 'active' : '') + '" data-tab="' + t.id + '">' + t.label + '</button>';
-                }).join('')}
-            </div>
             <div id="reportContent"></div>
         `;
 
@@ -79,17 +66,8 @@ window.AdminReports = {
             self._exportCsv();
         });
 
-        container.querySelectorAll('.tab-btn[data-tab]').forEach(function(tab) {
-            tab.addEventListener('click', function() {
-                self._activeTab = tab.dataset.tab;
-                self._selectedReport = tab.dataset.tab;
-                self._renderReports();
-            });
-        });
-
         container.querySelector('#reportTypeSelect').addEventListener('change', function() {
             self._selectedReport = this.value;
-            self._activeTab = this.value;
             self._renderReportContent();
         });
 
@@ -468,11 +446,12 @@ window.AdminReports = {
 
     _exportCsv() {
         var self = this;
-        switch (self._activeTab) {
-            case 'cost':    self._exportCostCsv();    break;
-            case 'labor':   self._exportLaborCsv();   break;
-            case 'expense': self._exportExpenseCsv(); break;
-            case 'invoice': self._exportInvoiceCsv(); break;
+        switch (self._selectedReport) {
+            case 'cost':        self._exportCostCsv();    break;
+            case 'labor':       self._exportLaborCsv();   break;
+            case 'expense':     self._exportExpenseCsv(); break;
+            case 'invoice':     self._exportInvoiceCsv(); break;
+            case 'labor-notes': break; // PDF-only via print button
         }
     },
 
