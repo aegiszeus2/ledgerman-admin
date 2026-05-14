@@ -1187,13 +1187,9 @@ async function openDetail(companyId) {
                         <label class="label-sm">HST Number</label>
                         <input type="text" id="editHstNumber" class="form-control" value="${esc(d.settings.hstNumber || '')}">
                     </div>
-                    <div class="form-group">
-                        <label class="label-sm">Admin Password</label>
-                        <div style="position:relative">
-                            <input type="password" id="editAdminPassword" class="form-control" value="${esc(d.password || '')}" style="padding-right:40px">
-                            <button type="button" class="password-toggle" data-toggle="editAdminPassword" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text2);z-index:10;pointer-events:all">Show</button>
-                        </div>
-                        <p style="font-size:.75rem;color:var(--text2);margin-top:4px">Leave blank to keep current password</p>
+                    <div class="form-group" style="display:none">
+                        <!-- Password field hidden: use "Generate New Password" button below for password resets -->
+                        <input type="password" id="editAdminPassword" class="form-control" autocomplete="off">
                     </div>
                     <div style="display:flex;gap:8px">
                         <button class="btn btn-secondary btn-sm" onclick="cancelDetailEdit()">Cancel</button>
@@ -1247,12 +1243,6 @@ async function openDetail(companyId) {
 
         // Attach password toggle listeners for dynamically added elements
         attachPasswordToggleListeners();
-
-        // Store original password for change detection
-        const passwordField = document.getElementById('editAdminPassword');
-        if (passwordField) {
-            _originalPassword = passwordField.value;
-        }
 
         // Load modules data
         loadCompanyModules(companyId);
@@ -1443,12 +1433,8 @@ async function saveDetailEdit(companyId) {
         hstNumber: document.getElementById('editHstNumber').value.trim(),
     };
 
-    // Handle optional password update (only if changed from original)
-    const newPassword = document.getElementById('editAdminPassword').value.trim();
-    const passwordChanged = newPassword !== _originalPassword.trim();
-    if (newPassword && passwordChanged) {
-        updates.adminPassword = newPassword;
-    }
+    // Password changes are handled by the dedicated reset endpoint (generateNewCompanyPassword),
+    // not included in the settings PATCH payload.
 
     // Validate required fields
     if (!updates.companyName) {
@@ -1469,7 +1455,7 @@ async function saveDetailEdit(companyId) {
         );
 
         if (result.success) {
-            toast('Company details updated successfully' + (passwordChanged ? ' and password changed' : ''), 'success');
+            toast('Company details updated successfully', 'success');
 
             // Update display with new values
             document.getElementById('detailCompanyName').textContent = esc(updates.companyName);
