@@ -794,9 +794,17 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <label>Created At</label>
             <input type="text" id="createCompanySuccessCreated" readonly style="background:var(--bg3)">
         </div>
+        <div class="form-group">
+            <label>Send Credentials Email</label>
+            <div style="display:flex;gap:8px">
+                <input type="email" id="createCompanySuccessEmail" placeholder="admin@company.com" style="flex:1">
+                <button class="btn btn-secondary btn-sm" id="sendCredsBtn" onclick="sendCredentialsEmail()">✉️ Send</button>
+            </div>
+            <div id="sendCredsStatus" style="font-size:0.82rem;margin-top:6px;display:none"></div>
+        </div>
         <div style="background:var(--bg2);padding:12px;border-radius:8px;margin:16px 0;font-size:0.85rem;border-left:4px solid var(--info)">
             <strong>Next Steps:</strong><br>
-            • Send the company name and auto-generated password to the customer<br>
+            • Enter the customer's email above and click Send to email their credentials<br>
             • They can log in at <span id="companyLoginUrl">ledgerman.org</span> with company name and password<br>
             • 30-day trial begins on their first login
         </div>
@@ -810,7 +818,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 <div id="toast"></div>
 
 <script>
-const API = 'https://ledgeman-backend.onrender.com';
+const API = window.LEDGERMAN_API_URL || 'https://ledgeman-backend.onrender.com';
 let _key = '';
 let _companies = [];
 let _stats = null;
@@ -1320,6 +1328,42 @@ async function submitCreateCompany() {
         errorEl.style.display = 'block';
         submitBtn.disabled = false;
         submitBtn.textContent = 'Create Company';
+    }
+}
+
+async function sendCredentialsEmail() {
+    const to       = document.getElementById('createCompanySuccessEmail').value.trim();
+    const companyId = document.getElementById('createCompanySuccessId').value;
+    const password  = document.getElementById('createCompanySuccessPassword').value;
+    const statusEl  = document.getElementById('sendCredsStatus');
+    const btn       = document.getElementById('sendCredsBtn');
+
+    if (!to || !to.includes('@')) {
+        statusEl.style.display = 'block';
+        statusEl.style.color   = 'var(--danger)';
+        statusEl.textContent   = 'Enter a valid email address.';
+        return;
+    }
+    btn.disabled    = true;
+    btn.textContent = 'Sending…';
+    statusEl.style.display = 'none';
+
+    try {
+        await apiFetch(`/api/superadmin/companies/${companyId}/send-credentials`, {
+            method: 'POST',
+            body: JSON.stringify({ to, password }),
+        });
+        statusEl.style.display = 'block';
+        statusEl.style.color   = 'var(--success)';
+        statusEl.textContent   = `✓ Credentials sent to ${to}`;
+        btn.textContent = '✓ Sent';
+        toast(`Credentials emailed to ${to}`, 'success');
+    } catch(e) {
+        statusEl.style.display = 'block';
+        statusEl.style.color   = 'var(--danger)';
+        statusEl.textContent   = 'Send failed: ' + e.message;
+        btn.disabled    = false;
+        btn.textContent = '✉️ Send';
     }
 }
 
