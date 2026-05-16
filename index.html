@@ -975,6 +975,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <label for="createCompanyName">Company Name *</label>
             <input type="text" id="createCompanyName" placeholder="e.g. Laurence Construction" required>
         </div>
+        <div class="form-group" style="margin-top:14px">
+            <label for="createCompanyEmail">Admin Email <span style="color:var(--text-muted);font-weight:400">(optional — auto-sends welcome email)</span></label>
+            <input type="email" id="createCompanyEmail" placeholder="e.g. john@company.com">
+        </div>
         <p style="font-size:0.85rem;color:var(--text-muted);margin:16px 0">Password will be auto-generated. 30-day trial starts on first login.</p>
         <div style="display:flex;gap:8px;margin-top:24px">
             <button class="btn btn-primary btn-block" onclick="submitCreateCompany()" id="createCompanySubmitBtn">Create Company</button>
@@ -1509,6 +1513,7 @@ function openCreateCompanyModal() {
     document.getElementById('createCompanyError').style.display = 'none';
     // Clear form
     document.getElementById('createCompanyName').value = '';
+    document.getElementById('createCompanyEmail').value = '';
     document.getElementById('createCompanySubmitBtn').disabled = false;
     document.getElementById('createCompanySubmitBtn').textContent = 'Create Company';
 }
@@ -1519,11 +1524,11 @@ function closeCreateCompanyModal() {
 }
 
 async function submitCreateCompany() {
-    const name = document.getElementById('createCompanyName').value.trim();
+    const name  = document.getElementById('createCompanyName').value.trim();
+    const email = (document.getElementById('createCompanyEmail').value || '').trim();
     const errorEl = document.getElementById('createCompanyError');
     const submitBtn = document.getElementById('createCompanySubmitBtn');
 
-    // Validate
     if (!name) {
         errorEl.textContent = 'Company name is required.';
         errorEl.style.display = 'block';
@@ -1535,10 +1540,12 @@ async function submitCreateCompany() {
     submitBtn.textContent = 'Creating…';
 
     try {
-        // API auto-generates password
+        const payload = { name };
+        if (email && email.includes('@')) payload.adminEmail = email;
+
         const result = await apiFetch('/api/superadmin/companies', {
             method: 'POST',
-            body: JSON.stringify({ name })
+            body: JSON.stringify(payload)
         });
 
         // Show success screen
@@ -1547,17 +1554,27 @@ async function submitCreateCompany() {
         document.getElementById('createCompanySuccessId').textContent = result.companyId;
         document.getElementById('createCompanySuccessName2').textContent = result.name;
         document.getElementById('createCompanySuccessPassword').textContent = result.adminPassword;
-        document.getElementById('sendCredsBtn').textContent = '📨 Send Welcome Email';
         document.getElementById('sendCredsBtn').disabled = false;
         document.getElementById('sendCredsBtn').style.background = '';
-        document.getElementById('sendCredsStatus').style.display = 'none';
-        document.getElementById('createCompanySuccessEmail').value = '';
 
-        // Refresh companies list
+        if (email && email.includes('@')) {
+            // Email was auto-sent via comms layer
+            document.getElementById('createCompanySuccessEmail').value = email;
+            document.getElementById('sendCredsStatus').style.display = 'block';
+            document.getElementById('sendCredsStatus').style.color = 'var(--success, #4ade80)';
+            document.getElementById('sendCredsStatus').textContent = '✓ Welcome email sent automatically to ' + email;
+            document.getElementById('sendCredsBtn').textContent = '📨 Resend Welcome Email';
+        } else {
+            document.getElementById('createCompanySuccessEmail').value = '';
+            document.getElementById('sendCredsStatus').style.display = 'none';
+            document.getElementById('sendCredsBtn').textContent = '📨 Send Welcome Email';
+        }
+
         loadCompanies();
         loadOverview();
 
-        toast('Company created successfully! Password auto-generated.', 'success');
+        const msg = email ? `Company created — welcome email sent to ${email}` : 'Company created! Enter an email to send credentials.';
+        toast(msg, 'success');
     } catch(e) {
         errorEl.textContent = 'Creation failed: ' + e.message;
         errorEl.style.display = 'block';
