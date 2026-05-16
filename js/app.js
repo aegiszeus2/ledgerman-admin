@@ -453,9 +453,15 @@
         // ============ PASSWORD RESET (ADMIN) ============
 
         _showPasswordReset() {
+            // Prefer stored companyId; fall back to company name typed in the login form
             const companyId = AppData.getCompanyId();
-            if (!companyId) {
-                Utils.showToast('Company ID not found. Please refresh and try again.', 'error');
+            const companyNameInput = document.getElementById('adminCompanyName');
+            const companyName = companyNameInput ? companyNameInput.value.trim() : '';
+
+            // Build the request payload — either companyId or companyName
+            const resetPayload = companyId ? { companyId } : (companyName ? { companyName } : null);
+            if (!resetPayload) {
+                Utils.showToast('Enter your company name first, then click Forgot Password.', 'error');
                 return;
             }
 
@@ -499,13 +505,17 @@
 
             document.getElementById('backToLogin').onclick = () => this.showAdminLogin();
 
+            // resolvedCompanyId is filled in after the first successful request-reset
+            // (the backend may return it when looking up by name)
+            let resolvedCompanyId = companyId || '';
+
             const doRequestReset = async (btn, btnLabel) => {
                 btn.disabled = true; btn.textContent = 'Sending…';
                 try {
                     const res = await fetch(AppData.API_BASE + '/api/auth/admin/request-reset', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ companyId })
+                        body: JSON.stringify(resetPayload)
                     });
                     const data = await res.json().catch(() => ({}));
                     if (!res.ok || data.error) {
@@ -513,6 +523,8 @@
                         btn.disabled = false; btn.textContent = btnLabel;
                         return false;
                     }
+                    // If backend returns companyId (when looked up by name), store it
+                    if (data.companyId) resolvedCompanyId = data.companyId;
                     return true;
                 } catch (err) {
                     Utils.showToast('Network error. Check your connection and try again.', 'error');
@@ -563,7 +575,7 @@
                     const res = await fetch(AppData.API_BASE + '/api/auth/admin/confirm-reset', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ companyId, code, newPassword: newPw })
+                        body: JSON.stringify({ companyId: resolvedCompanyId, code, newPassword: newPw })
                     });
                     const data = await res.json().catch(() => ({}));
                     if (!res.ok || data.error) {
