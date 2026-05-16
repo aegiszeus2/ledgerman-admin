@@ -1286,10 +1286,12 @@ function renderCompaniesTable(list) {
             </td>
             <td>
                 <div style="display:flex;gap:6px;align-items:flex-start">
-                    <code style="font-size:12px;background:#f5f5f5;color:#000;padding:4px 6px;border-radius:3px;word-break:break-all;flex:1">${esc(c.adminPasswordPlain || '—')}</code>
+                    ${c.adminPasswordPlain
+                        ? `<code style="font-size:12px;background:#f5f5f5;color:#000;padding:4px 6px;border-radius:3px;word-break:break-all;flex:1">${esc(c.adminPasswordPlain)}</code>`
+                        : `<span style="font-size:11px;color:#e67e22;font-style:italic;flex:1">Changed by company — reset to regain visibility</span>`}
                     <button type="button" class="btn-ghost btn-sm" onclick="event.stopPropagation();copyToClipboard('${c.adminPasswordPlain || ''}')" style="white-space:nowrap;margin-top:2px">📋</button><button type="button" class="btn-ghost btn-sm" onclick="event.stopPropagation();generateNewCompanyPassword('${c.id}')" style="white-space:nowrap;margin-top:2px">🔄</button>
                 </div>
-                <span style="font-size:11px;color:var(--text2)">🔐 Click "Edit Details" to change</span>
+                <span style="font-size:11px;color:var(--text2)">🔐 Use 🔄 to reset &amp; regain visibility</span>
             </td>
             <td>${c.workers}</td>
             <td>${c.projects}</td>
@@ -1366,7 +1368,7 @@ async function openDetail(companyId) {
                 <div class="card" style="margin-bottom:12px">
                     <div class="card-title mb-1">Company Settings</div>
                     <div class="text-sm">
-                        <div class="flex-between" style="margin-bottom:8px"><span class="text-muted">Admin Password</span><div style="display:flex;gap:8px;align-items:center"><code style="background:#f5f5f5;color:#000;padding:4px 6px;border-radius:3px;font-size:12px">${esc(d.adminPasswordPlain || '—')}</code><button type="button" class="btn-ghost btn-sm" onclick="copyToClipboard('${d.adminPasswordPlain || ''}')" style="white-space:nowrap">📋 Copy</button><button type="button" class="btn-ghost btn-sm" onclick="generateNewCompanyPassword('${d.id}')" style="white-space:nowrap">🔄 Generate New</button></div></div>
+                        <div class="flex-between" style="margin-bottom:8px"><span class="text-muted">Admin Password</span><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${d.adminPasswordPlain ? `<code style="background:#f5f5f5;color:#000;padding:4px 6px;border-radius:3px;font-size:12px">${esc(d.adminPasswordPlain)}</code>` : `<span style="font-size:11px;color:#e67e22;font-style:italic">Changed by company — reset to regain visibility</span>`}<button type="button" class="btn-ghost btn-sm" onclick="copyToClipboard('${d.adminPasswordPlain || ''}')" style="white-space:nowrap">📋 Copy</button><button type="button" class="btn-ghost btn-sm" onclick="generateNewCompanyPassword('${d.id}')" style="white-space:nowrap">🔄 Reset</button></div></div>
                         <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Company Name</span><span id="detailCompanyName">${esc(d.settings.companyName || d.name || '—')}</span></div>
                         <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Email</span><span id="detailEmail">${esc(d.settings.email || '—')}</span></div>
                         <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Phone</span><span id="detailPhone">${esc(d.settings.phone || '—')}</span></div>
@@ -1474,8 +1476,8 @@ async function openDetail(companyId) {
                     <input type="email" id="resendEmailTo_${d.id}" placeholder="admin@company.com" value="${esc(d.settings.email || '')}" style="width:100%">
                 </div>
                 <div class="form-group" style="margin-bottom:10px">
-                    <label class="label-sm">Password <span style="color:var(--text-muted);font-weight:400">(current password shown — or enter a new one)</span></label>
-                    <input type="text" id="resendPassword_${d.id}" placeholder="Password" value="${esc(d.adminPasswordPlain || '')}" style="width:100%;font-family:monospace" autocomplete="off">
+                    <label class="label-sm">Password <span style="color:var(--text-muted);font-weight:400">${d.adminPasswordPlain ? '(superadmin-set password shown)' : '(not visible — company changed it; reset below or enter manually)'}</span></label>
+                    <input type="text" id="resendPassword_${d.id}" placeholder="${d.adminPasswordPlain ? '' : 'Enter known password or reset first'}" value="${esc(d.adminPasswordPlain || '')}" style="width:100%;font-family:monospace${d.adminPasswordPlain ? '' : ';border-color:#e67e22'}" autocomplete="off">
                 </div>
                 <button class="btn btn-primary btn-block" onclick="resendWelcomeEmail('${d.id}')" style="margin-bottom:8px">📨 Send Welcome Email</button>
                 <button class="btn btn-secondary btn-block" onclick="resetAndResendWelcome('${d.id}')">🔄 Reset Password &amp; Resend</button>
@@ -1908,7 +1910,7 @@ async function loadCompanyModules(companyId) {
         let html = '';
         html += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px">';
         html += '<div style="font-weight:600;color:var(--primary);margin-bottom:8px;font-size:.9rem">🔐 Super Admin: Control Module Access</div>';
-        html += '<div class="text-sm text-muted" style="margin-bottom:12px">Toggle to permit/deny access. Company can only enable modules you permit here.</div>';
+        html += '<div class="text-sm text-muted" style="margin-bottom:12px">Toggle to permit/deny access. Company can only enable modules you permit here. <strong>"Enabled by company"</strong> means the company admin has turned this on in their Settings — reflected in real time from the same data source.</div>';
 
         Object.values(categories).forEach(cat => {
             if (cat.modules.length) {
