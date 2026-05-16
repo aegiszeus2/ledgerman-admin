@@ -600,6 +600,11 @@ function saveNotification(n) { return save('notifications', n); }
 function deleteNotification(id) { remove('notifications', id); }
 
 
+// ─── Estimates ─────────────────────────────────────────────────────────────
+function getEstimates() { return getAll('estimates'); }
+function getEstimate(id) { return getById('estimates', id); }
+function saveEstimate(e) { return save('estimates', e); }
+function deleteEstimate(id) { remove('estimates', id); }
 // ─── Invoices ──────────────────────────────────────────────────────────────
 function getInvoices(projectId) { return projectId ? getAll('invoices').filter(function(i) { return i.projectId === projectId; }) : getAll('invoices'); }
 function getInvoice(id) { return getById('invoices', id); }
@@ -963,6 +968,7 @@ async function importAllData(data) {
     if (data.expenses)     _setList('expenses', data.expenses);
     if (data.submissions)  _setList('submissions', data.submissions);
     if (data.invoices)     _setList('invoices', data.invoices);
+    if (data.estimates)     _setList('estimates', data.estimates);
     if (data.payments)     _setList('payments', data.payments);
     if (data.auditLog)     _setList('auditLog', data.auditLog);
     if (data.setupDone)    setData('setupDone', data.setupDone);
@@ -1026,6 +1032,8 @@ window.AppData = {
     // Submissions
     getSubmissions, getSubmission, saveSubmission, deleteSubmission,
     getPendingSubmissions, getWorkerSubmissions,
+    // Estimates
+    getEstimates, getEstimate, saveEstimate, deleteEstimate,
     // Invoices
     getNextProjectNumber,
     getInvoices, getInvoice, saveInvoice, getNextInvoiceNumber,
