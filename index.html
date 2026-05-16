@@ -768,49 +768,54 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div id="createCompanyError" class="form-error" style="display:none;margin-top:12px"></div>
     </div>
     <div id="createCompanySuccess" style="display:none">
-        <div style="background:var(--success);color:#fff;padding:16px;border-radius:8px;margin-bottom:16px">
-            <strong>✓ Company Created Successfully!</strong>
+        <div style="text-align:center;margin-bottom:20px">
+            <div style="font-size:2.5rem;margin-bottom:6px">✅</div>
+            <div style="font-weight:700;font-size:1.1rem">Company Created!</div>
+            <div style="font-size:.85rem;color:var(--text-muted)">Credentials are ready — send the welcome email now</div>
         </div>
-        <div class="form-group">
-            <label>Company ID</label>
-            <input type="text" id="createCompanySuccessId" readonly style="background:var(--bg3)">
-        </div>
-        <div class="form-group">
-            <label>Company Name</label>
-            <input type="text" id="createCompanySuccessName" readonly style="background:var(--bg3)">
-        </div>
-        <div class="form-group">
-            <label>Auto-Generated Admin Password</label>
-            <div style="display:flex;gap:8px">
-                <input type="text" id="createCompanySuccessPassword" readonly style="background:var(--bg3);flex:1">
-                <button class="btn btn-secondary btn-sm" onclick="copyToClipboard(document.getElementById('createCompanySuccessPassword').value)">📋 Copy</button>
+
+        <!-- Credentials block -->
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
+            <div style="font-size:.7rem;font-weight:700;letter-spacing:.8px;color:var(--primary);text-transform:uppercase;margin-bottom:10px">Company Credentials</div>
+            <div style="margin-bottom:8px">
+                <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:2px">Company Name</div>
+                <div style="font-weight:700" id="createCompanySuccessName2">—</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+                <div>
+                    <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:2px">Company ID</div>
+                    <div style="font-family:monospace;font-size:.75rem;color:var(--primary);cursor:pointer;word-break:break-all" id="createCompanySuccessId" onclick="copyToClipboard(this.textContent);toast('Company ID copied!','success')" title="Click to copy">—</div>
+                </div>
+                <div>
+                    <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:2px">Password</div>
+                    <div style="font-family:monospace;font-weight:700;color:#4ade80;cursor:pointer" id="createCompanySuccessPassword" onclick="copyToClipboard(this.textContent);toast('Password copied!','success')" title="Click to copy">—</div>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div>
+                    <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:2px">Admin Portal</div>
+                    <a href="https://ledgerman.org" target="_blank" style="font-size:.75rem;color:var(--primary)">ledgerman.org</a>
+                </div>
+                <div>
+                    <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:2px">Worker Portal</div>
+                    <a href="https://ledgerman.org/daily-report.html" target="_blank" style="font-size:.75rem;color:var(--primary)">ledgerman.org/daily-report.html</a>
+                </div>
             </div>
         </div>
-        <div class="form-group">
-            <label>Trial Status</label>
-            <input type="text" id="createCompanySuccessTrial" readonly style="background:var(--bg3)" value="30-day trial (starts on first login)">
-        </div>
-        <div class="form-group">
-            <label>Created At</label>
-            <input type="text" id="createCompanySuccessCreated" readonly style="background:var(--bg3)">
-        </div>
-        <div class="form-group">
-            <label>Send Credentials Email</label>
-            <div style="display:flex;gap:8px">
+
+        <!-- Send welcome email -->
+        <div style="background:var(--bg3);border:1px solid rgba(201,168,76,.25);border-radius:8px;padding:14px;margin-bottom:16px">
+            <div style="font-size:.7rem;font-weight:700;letter-spacing:.8px;color:var(--primary);text-transform:uppercase;margin-bottom:10px">📧 Send Welcome Email</div>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
                 <input type="email" id="createCompanySuccessEmail" placeholder="admin@company.com" style="flex:1">
-                <button class="btn btn-secondary btn-sm" id="sendCredsBtn" onclick="sendCredentialsEmail()">✉️ Send</button>
             </div>
-            <div id="sendCredsStatus" style="font-size:0.82rem;margin-top:6px;display:none"></div>
+            <button class="btn btn-primary btn-block" id="sendCredsBtn" onclick="sendCredentialsEmail()" style="font-size:.95rem;padding:12px">📨 Send Welcome Email</button>
+            <div id="sendCredsStatus" style="font-size:0.82rem;margin-top:8px;display:none"></div>
         </div>
-        <div style="background:var(--bg2);padding:12px;border-radius:8px;margin:16px 0;font-size:0.85rem;border-left:4px solid var(--info)">
-            <strong>Next Steps:</strong><br>
-            • Enter the customer's email above and click Send to email their credentials<br>
-            • They can log in at <span id="companyLoginUrl">ledgerman.org</span> with company name and password<br>
-            • 30-day trial begins on their first login
-        </div>
-        <div style="display:flex;gap:8px;margin-top:24px">
-            <button class="btn btn-primary btn-block" onclick="closeCreateCompanyModal()">Done</button>
-        </div>
+
+        <!-- Copy all -->
+        <button class="btn btn-secondary btn-block" onclick="copyAllNewCompanyCreds()" style="margin-bottom:12px">📋 Copy All Credentials</button>
+        <button class="btn btn-secondary btn-block" onclick="closeCreateCompanyModal()">Done</button>
     </div>
 </div>
 
@@ -1308,15 +1313,14 @@ async function submitCreateCompany() {
         // Show success screen
         document.getElementById('createCompanyForm').style.display = 'none';
         document.getElementById('createCompanySuccess').style.display = 'block';
-        document.getElementById('createCompanySuccessId').value = result.companyId;
-        document.getElementById('createCompanySuccessName').value = result.name;
-        document.getElementById('createCompanySuccessPassword').value = result.adminPassword;
-        document.getElementById('createCompanySuccessCreated').value = formatDate(result.createdAt);
-
-        // Update trial info
-        if (result.isTrial) {
-            document.getElementById('createCompanySuccessTrial').value = `${result.trialDays}-day trial (starts on first login)`;
-        }
+        document.getElementById('createCompanySuccessId').textContent = result.companyId;
+        document.getElementById('createCompanySuccessName2').textContent = result.name;
+        document.getElementById('createCompanySuccessPassword').textContent = result.adminPassword;
+        document.getElementById('sendCredsBtn').textContent = '📨 Send Welcome Email';
+        document.getElementById('sendCredsBtn').disabled = false;
+        document.getElementById('sendCredsBtn').style.background = '';
+        document.getElementById('sendCredsStatus').style.display = 'none';
+        document.getElementById('createCompanySuccessEmail').value = '';
 
         // Refresh companies list
         loadCompanies();
@@ -1332,9 +1336,9 @@ async function submitCreateCompany() {
 }
 
 async function sendCredentialsEmail() {
-    const to       = document.getElementById('createCompanySuccessEmail').value.trim();
-    const companyId = document.getElementById('createCompanySuccessId').value;
-    const password  = document.getElementById('createCompanySuccessPassword').value;
+    const to        = document.getElementById('createCompanySuccessEmail').value.trim();
+    const companyId = document.getElementById('createCompanySuccessId').textContent.trim();
+    const password  = document.getElementById('createCompanySuccessPassword').textContent.trim();
     const statusEl  = document.getElementById('sendCredsStatus');
     const btn       = document.getElementById('sendCredsBtn');
 
@@ -1345,7 +1349,7 @@ async function sendCredentialsEmail() {
         return;
     }
     btn.disabled    = true;
-    btn.textContent = 'Sending…';
+    btn.textContent = '⏳ Sending…';
     statusEl.style.display = 'none';
 
     try {
@@ -1355,16 +1359,33 @@ async function sendCredentialsEmail() {
         });
         statusEl.style.display = 'block';
         statusEl.style.color   = 'var(--success)';
-        statusEl.textContent   = `✓ Credentials sent to ${to}`;
-        btn.textContent = '✓ Sent';
-        toast(`Credentials emailed to ${to}`, 'success');
+        statusEl.textContent   = `✅ Welcome email sent to ${to}`;
+        btn.textContent = '✅ Email Sent!';
+        btn.style.background = 'var(--success)';
+        toast(`Welcome email sent to ${to}!`, 'success');
     } catch(e) {
         statusEl.style.display = 'block';
         statusEl.style.color   = 'var(--danger)';
         statusEl.textContent   = 'Send failed: ' + e.message;
         btn.disabled    = false;
-        btn.textContent = '✉️ Send';
+        btn.textContent = '📨 Send Welcome Email';
+        toast('Send failed: ' + e.message, 'error');
     }
+}
+
+function copyAllNewCompanyCreds() {
+    const id  = document.getElementById('createCompanySuccessId').textContent.trim();
+    const name = document.getElementById('createCompanySuccessName2').textContent.trim();
+    const pw  = document.getElementById('createCompanySuccessPassword').textContent.trim();
+    const text = [
+        'Company:        ' + name,
+        'Company ID:     ' + id,
+        'Password:       ' + pw,
+        'Admin Portal:   https://ledgerman.org',
+        'Worker Portal:  https://ledgerman.org/daily-report.html',
+    ].join('\n');
+    copyToClipboard(text);
+    toast('Credentials copied!', 'success');
 }
 
 async function downloadCompanyBackup(companyId, companyName) {
