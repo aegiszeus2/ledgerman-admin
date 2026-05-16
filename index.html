@@ -1247,6 +1247,21 @@ async function openDetail(companyId) {
                 </div>
             </div>
 
+            <div class="card" style="margin-bottom:12px;border:1px solid rgba(201,168,76,.2)">
+                <div style="font-size:.7rem;font-weight:700;letter-spacing:.8px;color:var(--primary);text-transform:uppercase;margin-bottom:10px">📧 Send Welcome Email</div>
+                <div class="form-group" style="margin-bottom:8px">
+                    <label class="label-sm">Recipient Email</label>
+                    <input type="email" id="resendEmailTo_${d.id}" placeholder="admin@company.com" value="${esc(d.settings.email || '')}" style="width:100%">
+                </div>
+                <div class="form-group" style="margin-bottom:10px">
+                    <label class="label-sm">Password <span style="color:var(--text-muted);font-weight:400">(current password shown — or enter a new one)</span></label>
+                    <input type="text" id="resendPassword_${d.id}" placeholder="Password" value="${esc(d.password || '')}" style="width:100%;font-family:monospace" autocomplete="off">
+                </div>
+                <button class="btn btn-primary btn-block" onclick="resendWelcomeEmail('${d.id}')" style="margin-bottom:8px">📨 Send Welcome Email</button>
+                <button class="btn btn-secondary btn-block" onclick="resetAndResendWelcome('${d.id}')">🔄 Reset Password &amp; Resend</button>
+                <div id="resendEmailResult_${d.id}" style="margin-top:8px;display:none;font-size:.82rem"></div>
+            </div>
+
             <div style="display:flex;flex-direction:column;gap:8px">
                 <button class="btn btn-primary" id="detailEditBtn" onclick="initDetailEdit()">🔒 Edit Details</button>
                 <button class="btn btn-secondary" onclick="runDiagnosticsFor('${d.id}')">🛡️ Run LittleShield Diagnostics</button>
@@ -1370,6 +1385,75 @@ async function sendCredentialsEmail() {
         btn.disabled    = false;
         btn.textContent = '📨 Send Welcome Email';
         toast('Send failed: ' + e.message, 'error');
+    }
+}
+
+// ── Resend welcome email from company detail panel ────────────
+async function resendWelcomeEmail(companyId) {
+    const to       = (document.getElementById('resendEmailTo_' + companyId)?.value || '').trim();
+    const password = (document.getElementById('resendPassword_' + companyId)?.value || '').trim();
+    const resultEl = document.getElementById('resendEmailResult_' + companyId);
+
+    if (!to || !to.includes('@')) { toast('Enter a valid recipient email.', 'error'); return; }
+    if (!password) { toast('Password is required.', 'error'); return; }
+
+    try {
+        await apiFetch(`/api/superadmin/companies/${companyId}/send-credentials`, {
+            method: 'POST',
+            body: JSON.stringify({ to, password }),
+        });
+        if (resultEl) {
+            resultEl.style.display = 'block';
+            resultEl.style.color = 'var(--success)';
+            resultEl.textContent = '✅ Welcome email sent to ' + to;
+        }
+        toast('Welcome email sent!', 'success');
+    } catch(e) {
+        if (resultEl) {
+            resultEl.style.display = 'block';
+            resultEl.style.color = 'var(--danger)';
+            resultEl.textContent = '❌ ' + e.message;
+        }
+        toast('Send failed: ' + e.message, 'error');
+    }
+}
+
+async function resetAndResendWelcome(companyId) {
+    const toEl    = document.getElementById('resendEmailTo_' + companyId);
+    const pwEl    = document.getElementById('resendPassword_' + companyId);
+    const resultEl = document.getElementById('resendEmailResult_' + companyId);
+    const to = (toEl?.value || '').trim();
+
+    if (!to || !to.includes('@')) { toast('Enter recipient email first.', 'error'); return; }
+    if (!confirm('Generate a NEW password for this company and email it to ' + to + '?')) return;
+
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let newPw = '';
+    for (let i = 0; i < 12; i++) newPw += chars[Math.floor(Math.random() * chars.length)];
+
+    try {
+        await apiFetch(`/api/superadmin/companies/${companyId}/reset-password`, {
+            method: 'POST',
+            body: JSON.stringify({ password: newPw }),
+        });
+        await apiFetch(`/api/superadmin/companies/${companyId}/send-credentials`, {
+            method: 'POST',
+            body: JSON.stringify({ to, password: newPw }),
+        });
+        if (pwEl) pwEl.value = newPw;
+        if (resultEl) {
+            resultEl.style.display = 'block';
+            resultEl.style.color = 'var(--success)';
+            resultEl.textContent = '✅ Password reset & email sent to ' + to + '. New password: ' + newPw;
+        }
+        toast('Password reset & email sent!', 'success');
+    } catch(e) {
+        if (resultEl) {
+            resultEl.style.display = 'block';
+            resultEl.style.color = 'var(--danger)';
+            resultEl.textContent = '❌ ' + e.message;
+        }
+        toast('Failed: ' + e.message, 'error');
     }
 }
 
