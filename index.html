@@ -1282,8 +1282,8 @@ function renderCompaniesTable(list) {
             </td>
             <td>
                 <div style="display:flex;gap:6px;align-items:flex-start">
-                    <code style="font-size:12px;background:#f5f5f5;color:#000;padding:4px 6px;border-radius:3px;word-break:break-all;flex:1">${esc(c.password)}</code>
-                    <button type="button" class="btn-ghost btn-sm" onclick="event.stopPropagation();copyToClipboard('${c.password}')" style="white-space:nowrap;margin-top:2px">📋</button><button type="button" class="btn-ghost btn-sm" onclick="event.stopPropagation();generateNewCompanyPassword('${c.id}')" style="white-space:nowrap;margin-top:2px">🔄</button>
+                    <code style="font-size:12px;background:#f5f5f5;color:#000;padding:4px 6px;border-radius:3px;word-break:break-all;flex:1">${esc(c.adminPasswordPlain || '—')}</code>
+                    <button type="button" class="btn-ghost btn-sm" onclick="event.stopPropagation();copyToClipboard('${c.adminPasswordPlain || ''}')" style="white-space:nowrap;margin-top:2px">📋</button><button type="button" class="btn-ghost btn-sm" onclick="event.stopPropagation();generateNewCompanyPassword('${c.id}')" style="white-space:nowrap;margin-top:2px">🔄</button>
                 </div>
                 <span style="font-size:11px;color:var(--text2)">🔐 Click "Edit Details" to change</span>
             </td>
@@ -1362,7 +1362,7 @@ async function openDetail(companyId) {
                 <div class="card" style="margin-bottom:12px">
                     <div class="card-title mb-1">Company Settings</div>
                     <div class="text-sm">
-                        <div class="flex-between" style="margin-bottom:8px"><span class="text-muted">Admin Password</span><div style="display:flex;gap:8px;align-items:center"><code style="background:#f5f5f5;color:#000;padding:4px 6px;border-radius:3px;font-size:12px">${esc(d.password || '—')}</code><button type="button" class="btn-ghost btn-sm" onclick="copyToClipboard('${d.password}')" style="white-space:nowrap">📋 Copy</button><button type="button" class="btn-ghost btn-sm" onclick="generateNewCompanyPassword('${d.id}')" style="white-space:nowrap">🔄 Generate New</button></div></div>
+                        <div class="flex-between" style="margin-bottom:8px"><span class="text-muted">Admin Password</span><div style="display:flex;gap:8px;align-items:center"><code style="background:#f5f5f5;color:#000;padding:4px 6px;border-radius:3px;font-size:12px">${esc(d.adminPasswordPlain || '—')}</code><button type="button" class="btn-ghost btn-sm" onclick="copyToClipboard('${d.adminPasswordPlain || ''}')" style="white-space:nowrap">📋 Copy</button><button type="button" class="btn-ghost btn-sm" onclick="generateNewCompanyPassword('${d.id}')" style="white-space:nowrap">🔄 Generate New</button></div></div>
                         <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Company Name</span><span id="detailCompanyName">${esc(d.settings.companyName || d.name || '—')}</span></div>
                         <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Email</span><span id="detailEmail">${esc(d.settings.email || '—')}</span></div>
                         <div class="flex-between" style="margin-bottom:4px"><span class="text-muted">Phone</span><span id="detailPhone">${esc(d.settings.phone || '—')}</span></div>
@@ -1471,7 +1471,7 @@ async function openDetail(companyId) {
                 </div>
                 <div class="form-group" style="margin-bottom:10px">
                     <label class="label-sm">Password <span style="color:var(--text-muted);font-weight:400">(current password shown — or enter a new one)</span></label>
-                    <input type="text" id="resendPassword_${d.id}" placeholder="Password" value="${esc(d.password || '')}" style="width:100%;font-family:monospace" autocomplete="off">
+                    <input type="text" id="resendPassword_${d.id}" placeholder="Password" value="${esc(d.adminPasswordPlain || '')}" style="width:100%;font-family:monospace" autocomplete="off">
                 </div>
                 <button class="btn btn-primary btn-block" onclick="resendWelcomeEmail('${d.id}')" style="margin-bottom:8px">📨 Send Welcome Email</button>
                 <button class="btn btn-secondary btn-block" onclick="resetAndResendWelcome('${d.id}')">🔄 Reset Password &amp; Resend</button>
@@ -2915,11 +2915,17 @@ function generateNewCompanyPassword(companyId) {
     if (!confirm('Generate a new password for this company? Share it with the client.')) {
         return;
     }
-    
+
+    // Generate password client-side (12 chars, unambiguous charset)
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let newPw = '';
+    for (let i = 0; i < 12; i++) newPw += chars[Math.floor(Math.random() * chars.length)];
+
     const token = localStorage.getItem('ls_admin_key');
     fetch(`${API}/api/superadmin/companies/${companyId}/reset-password`, {
         method: 'POST',
-        headers: { 'X-Superadmin-Key': token, 'Content-Type': 'application/json' }
+        headers: { 'X-Superadmin-Key': token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPw })
     })
     .then(r => r.json())
     .then(result => {
@@ -2927,10 +2933,10 @@ function generateNewCompanyPassword(companyId) {
             toast(`Error: ${result.error}`, 'error');
             return;
         }
-        const companyName = document.getElementById('detailCompanyName').textContent || 'Company';
-        const msg = `New password for ${companyName}:\n\n${result.newPassword}\n\nCopy this and share with the company admin.`;
+        const companyName = document.getElementById('detailCompanyName')?.textContent || 'Company';
+        const msg = `New password for ${companyName}:\n\n${newPw}\n\nCopy this and share with the company admin.`;
         alert(msg);
-        copyToClipboard(result.newPassword);
+        copyToClipboard(newPw);
         toast('New password generated and copied to clipboard', 'success');
         setTimeout(() => location.reload(), 1000);
     })
