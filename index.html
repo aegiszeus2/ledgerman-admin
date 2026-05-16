@@ -506,6 +506,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <button class="nav-btn" data-tab="health">💚 Health</button>
         <button class="nav-btn" data-tab="littleshield">🛡️ LittleShield</button>
         <button class="nav-btn" data-tab="support">🎧 Support</button>
+        <button class="nav-btn" data-tab="ops-governance">🔍 Ops</button>
     </nav>
 
     <div class="main-content">
@@ -735,6 +736,220 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
                 </div>
             </div>
         </div>
+
+        <!-- OPS GOVERNANCE -->
+        <div data-section="ops-governance" style="display:none">
+            <div style="margin-bottom:20px">
+                <h2 style="font-size:1.25rem;margin-bottom:4px">🔍 Ops Governance</h2>
+                <p class="text-muted text-sm">Platform operational health, audit log, incident tracking, root-cause analysis, and reports.</p>
+            </div>
+
+            <!-- Sub-tab nav -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px" id="opsSubNav">
+                <button class="btn btn-primary btn-sm" data-ops-tab="health"    onclick="opsSubTab('health')">💚 Health Status</button>
+                <button class="btn btn-secondary btn-sm" data-ops-tab="auditlog" onclick="opsSubTab('auditlog')">📋 Audit Log</button>
+                <button class="btn btn-secondary btn-sm" data-ops-tab="incidents" onclick="opsSubTab('incidents')">🚨 Incidents</button>
+                <button class="btn btn-secondary btn-sm" data-ops-tab="timeline"  onclick="opsSubTab('timeline')">📅 Timeline</button>
+                <button class="btn btn-secondary btn-sm" data-ops-tab="reports"   onclick="opsSubTab('reports')">📥 Reports</button>
+            </div>
+
+            <!-- Health Status sub-tab -->
+            <div id="ops-health" data-ops-section="health">
+                <div class="card">
+                    <div class="card-header">
+                        <div><div class="card-title">Platform Health Status</div><div class="card-subtitle" id="opsHealthTimestamp">Not yet checked</div></div>
+                        <button class="btn btn-primary btn-sm" onclick="opsRunHealthSnapshot()">↻ Run &amp; Persist Snapshot</button>
+                    </div>
+                    <div id="opsHealthResults"><div class="empty">Click Run &amp; Persist Snapshot to check and record platform health.</div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Deployment Context</div>
+                    </div>
+                    <div id="opsDeployContext"><div class="empty">Run a health snapshot to see deployment info.</div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Last 10 Health Events</div>
+                    </div>
+                    <div id="opsRecentHealth"><div class="empty">No health history yet.</div></div>
+                </div>
+            </div>
+
+            <!-- Audit Log sub-tab -->
+            <div id="ops-auditlog" data-ops-section="auditlog" style="display:none">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Operational Audit Log</div>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap">
+                            <button class="btn btn-secondary btn-sm" onclick="opsLoadAuditLog()">↻ Refresh</button>
+                            <button class="btn btn-secondary btn-sm" onclick="opsExportAuditCsv()">⬇ CSV</button>
+                        </div>
+                    </div>
+                    <!-- Filters -->
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                        <select id="opsAuditSevFilter" onchange="opsLoadAuditLog()" style="padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem">
+                            <option value="">All Severities</option>
+                            <option value="critical">Critical</option>
+                            <option value="error">Error</option>
+                            <option value="warning">Warning</option>
+                            <option value="info">Info</option>
+                            <option value="ok">OK</option>
+                        </select>
+                        <select id="opsAuditCatFilter" onchange="opsLoadAuditLog()" style="padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem">
+                            <option value="">All Categories</option>
+                            <option value="health">Health</option>
+                            <option value="auth">Auth</option>
+                            <option value="persistence">Persistence</option>
+                            <option value="backup">Backup</option>
+                            <option value="deployment">Deployment</option>
+                            <option value="remediation">Remediation</option>
+                            <option value="drift">Drift</option>
+                        </select>
+                        <input type="text" id="opsAuditSearch" placeholder="Search messages…" oninput="opsLoadAuditLog()" style="padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem;flex:1;min-width:140px">
+                    </div>
+                    <!-- Write Manual Event -->
+                    <details style="margin-bottom:12px">
+                        <summary style="cursor:pointer;font-size:.85rem;color:var(--text2);user-select:none">+ Write Manual Audit Event</summary>
+                        <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                            <select id="opsWriteCategory" style="padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem">
+                                <option value="health">Health</option>
+                                <option value="auth">Auth</option>
+                                <option value="persistence">Persistence</option>
+                                <option value="backup">Backup</option>
+                                <option value="deployment">Deployment</option>
+                                <option value="remediation">Remediation</option>
+                                <option value="drift">Drift</option>
+                            </select>
+                            <select id="opsWriteSeverity" style="padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem">
+                                <option value="info">Info</option>
+                                <option value="ok">OK</option>
+                                <option value="warning">Warning</option>
+                                <option value="error">Error</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                            <input type="text" id="opsWriteModule" placeholder="Module / service" style="padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem">
+                            <input type="text" id="opsWriteMessage" placeholder="Event message *" style="padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem">
+                        </div>
+                        <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="opsWriteAuditEvent()">📝 Write Event</button>
+                    </details>
+                    <div id="opsAuditTable"><div class="empty">Loading…</div></div>
+                    <div id="opsAuditPager" style="margin-top:12px;display:flex;gap:8px;align-items:center;font-size:.85rem"></div>
+                </div>
+            </div>
+
+            <!-- Incidents sub-tab -->
+            <div id="ops-incidents" data-ops-section="incidents" style="display:none">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Operational Incidents</div>
+                        <div style="display:flex;gap:6px">
+                            <button class="btn btn-secondary btn-sm" onclick="opsLoadIncidents()">↻ Refresh</button>
+                            <button class="btn btn-primary btn-sm" onclick="opsShowNewIncident()">+ New Incident</button>
+                        </div>
+                    </div>
+                    <!-- Filter -->
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                        <select id="opsIncStatusFilter" onchange="opsLoadIncidents()" style="padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem">
+                            <option value="">All Statuses</option>
+                            <option value="open">Open</option>
+                            <option value="investigating">Investigating</option>
+                            <option value="monitoring">Monitoring</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                        <select id="opsIncSevFilter" onchange="opsLoadIncidents()" style="padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem">
+                            <option value="">All Severities</option>
+                            <option value="critical">Critical</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    <!-- New incident form (hidden by default) -->
+                    <div id="opsNewIncidentForm" style="display:none;background:var(--bg3);border-radius:8px;padding:16px;margin-bottom:16px">
+                        <div style="font-weight:600;margin-bottom:10px">New Incident</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                            <input type="text" id="opsIncTitle" placeholder="Incident title *" style="padding:6px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem;grid-column:1/-1">
+                            <select id="opsIncSeverity" style="padding:6px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem">
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="critical">Critical</option>
+                                <option value="low">Low</option>
+                            </select>
+                            <select id="opsIncCategory" style="padding:6px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem">
+                                <option value="health">Health</option>
+                                <option value="auth">Auth</option>
+                                <option value="persistence">Persistence</option>
+                                <option value="backup">Backup</option>
+                                <option value="deployment">Deployment</option>
+                                <option value="drift">Drift</option>
+                                <option value="unknown">Unknown</option>
+                            </select>
+                        </div>
+                        <textarea id="opsIncDesc" placeholder="Description of the incident…" style="width:100%;padding:6px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem;min-height:60px;resize:vertical;box-sizing:border-box;margin-bottom:8px"></textarea>
+                        <textarea id="opsIncRootCause" placeholder="Root cause (if known)…" style="width:100%;padding:6px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem;min-height:50px;resize:vertical;box-sizing:border-box;margin-bottom:8px"></textarea>
+                        <textarea id="opsIncRemediation" placeholder="Remediation action taken or planned…" style="width:100%;padding:6px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem;min-height:50px;resize:vertical;box-sizing:border-box;margin-bottom:8px"></textarea>
+                        <div style="display:flex;gap:8px">
+                            <button class="btn btn-primary btn-sm" onclick="opsCreateIncident()">Create Incident</button>
+                            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('opsNewIncidentForm').style.display='none'">Cancel</button>
+                        </div>
+                    </div>
+                    <div id="opsIncidentsTable"><div class="empty">Loading…</div></div>
+                </div>
+            </div>
+
+            <!-- Timeline sub-tab -->
+            <div id="ops-timeline" data-ops-section="timeline" style="display:none">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Operational Timeline</div>
+                        <div style="display:flex;gap:6px;align-items:center">
+                            <select id="opsTimelineDays" onchange="opsLoadTimeline()" style="padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);font-size:.85rem">
+                                <option value="7">Last 7 days</option>
+                                <option value="30" selected>Last 30 days</option>
+                                <option value="90">Last 90 days</option>
+                            </select>
+                            <button class="btn btn-secondary btn-sm" onclick="opsLoadTimeline()">↻ Refresh</button>
+                        </div>
+                    </div>
+                    <div id="opsTimelineView"><div class="empty">Loading timeline…</div></div>
+                </div>
+            </div>
+
+            <!-- Reports sub-tab -->
+            <div id="ops-reports" data-ops-section="reports" style="display:none">
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Export Operational Reports</div></div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">
+                        <div style="background:var(--bg3);border-radius:8px;padding:16px;text-align:center">
+                            <div style="font-size:2rem;margin-bottom:6px">📊</div>
+                            <div style="font-weight:600;margin-bottom:4px">Full Ops Report</div>
+                            <div style="font-size:.8rem;color:var(--text2);margin-bottom:12px">All events + incidents (JSON)</div>
+                            <div style="display:flex;flex-direction:column;gap:6px">
+                                <button class="btn btn-primary btn-sm" onclick="opsDownloadReport('json', 30)">⬇ JSON — 30 days</button>
+                                <button class="btn btn-secondary btn-sm" onclick="opsDownloadReport('json', 90)">⬇ JSON — 90 days</button>
+                            </div>
+                        </div>
+                        <div style="background:var(--bg3);border-radius:8px;padding:16px;text-align:center">
+                            <div style="font-size:2rem;margin-bottom:6px">📋</div>
+                            <div style="font-weight:600;margin-bottom:4px">Audit Log CSV</div>
+                            <div style="font-size:.8rem;color:var(--text2);margin-bottom:12px">Audit + incidents (CSV)</div>
+                            <div style="display:flex;flex-direction:column;gap:6px">
+                                <button class="btn btn-primary btn-sm" onclick="opsDownloadReport('csv', 30)">⬇ CSV — 30 days</button>
+                                <button class="btn btn-secondary btn-sm" onclick="opsDownloadReport('csv', 90)">⬇ CSV — 90 days</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:8px;padding:12px;font-size:.82rem;color:var(--text2)">
+                        <strong>Reports include:</strong> Operational audit events · Health check history · Incident log ·
+                        Root cause analysis · Remediation tracking · Deployment context (git commit, deploy ID, service name).
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- END OPS GOVERNANCE -->
+
     </div>
 </div>
 
@@ -966,6 +1181,7 @@ function switchTab(tabName) {
     if (tabName === 'companies') loadCompanies();
     if (tabName === 'health') loadHealth();
     if (tabName === 'littleshield') loadLittleShield();
+    if (tabName === 'ops-governance') loadOpsGovernance();
 }
 
 document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -2296,6 +2512,377 @@ function esc(str) {
     if (!str) return '';
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ══════════════════════════════════════════════════════════════
+//  OPS GOVERNANCE MODULE
+// ══════════════════════════════════════════════════════════════
+
+// ── Sub-tab switching ─────────────────────────────────────────
+function opsSubTab(name) {
+    document.querySelectorAll('#opsSubNav button').forEach(b => {
+        const active = b.dataset.opsTab === name;
+        b.className = active ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+    });
+    document.querySelectorAll('[data-ops-section]').forEach(s => {
+        s.style.display = s.dataset.opsSection === name ? 'block' : 'none';
+    });
+    if (name === 'health')    opsLoadRecentHealth();
+    if (name === 'auditlog')  opsLoadAuditLog();
+    if (name === 'incidents') opsLoadIncidents();
+    if (name === 'timeline')  opsLoadTimeline();
+}
+
+// ── Severity badge ────────────────────────────────────────────
+function opsSevBadge(sev) {
+    const map = {
+        ok:       { bg: '#16a34a', text: '#fff' },
+        info:     { bg: '#2563eb', text: '#fff' },
+        warning:  { bg: '#d97706', text: '#fff' },
+        error:    { bg: '#dc2626', text: '#fff' },
+        critical: { bg: '#7c3aed', text: '#fff' },
+        low:      { bg: '#16a34a', text: '#fff' },
+        medium:   { bg: '#d97706', text: '#fff' },
+        high:     { bg: '#dc2626', text: '#fff' },
+    };
+    const c = map[sev] || { bg: '#6b7280', text: '#fff' };
+    return `<span style="display:inline-block;padding:1px 7px;border-radius:9999px;font-size:.72rem;font-weight:700;background:${c.bg};color:${c.text}">${esc(sev)}</span>`;
+}
+
+// ── Status badge for incidents ────────────────────────────────
+function opsStatusBadge(status) {
+    const map = {
+        open:          { bg: '#dc2626', text: '#fff' },
+        investigating: { bg: '#d97706', text: '#fff' },
+        monitoring:    { bg: '#2563eb', text: '#fff' },
+        resolved:      { bg: '#16a34a', text: '#fff' },
+        closed:        { bg: '#6b7280', text: '#fff' },
+    };
+    const c = map[status] || { bg: '#6b7280', text: '#fff' };
+    return `<span style="display:inline-block;padding:1px 7px;border-radius:9999px;font-size:.72rem;font-weight:700;background:${c.bg};color:${c.text}">${esc(status)}</span>`;
+}
+
+// ── Load entry point (called by switchTab) ─────────────────────
+function loadOpsGovernance() {
+    opsSubTab('health');
+}
+
+// ── Health snapshot ────────────────────────────────────────────
+async function opsRunHealthSnapshot() {
+    const el = document.getElementById('opsHealthResults');
+    const tsEl = document.getElementById('opsHealthTimestamp');
+    el.innerHTML = '<div class="empty">Running health snapshot…</div>';
+    try {
+        const data = await apiFetch('/api/superadmin/ops/health-snapshot', { method: 'POST' });
+        const overallColor = data.status === 'ok' ? 'var(--success)' :
+                             data.status === 'warning' ? 'var(--warning)' : 'var(--danger)';
+        tsEl.textContent = 'Last run: ' + formatDate(data.timestamp) +
+                           ' · Session: ' + (data.session_id || '').slice(0, 8) +
+                           ' · Deploy: ' + (data.deploy_id || 'unknown');
+
+        if (data.deploy_id || data.deploy_id === '') {
+            document.getElementById('opsDeployContext').innerHTML = `
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+                    <div><div style="font-size:.75rem;color:var(--text2);margin-bottom:2px">Git Commit</div>
+                         <code style="font-size:.85rem">${esc(data.deploy_id || 'unknown')}</code></div>
+                    <div><div style="font-size:.75rem;color:var(--text2);margin-bottom:2px">Timestamp</div>
+                         <div style="font-size:.85rem">${esc(data.timestamp)}</div></div>
+                    <div><div style="font-size:.75rem;color:var(--text2);margin-bottom:2px">Overall Status</div>
+                         ${opsSevBadge(data.status)}</div>
+                </div>`;
+        }
+
+        el.innerHTML = `
+            <div style="margin-bottom:12px;padding:10px 14px;border-radius:6px;background:${overallColor}20;border:1px solid ${overallColor};font-weight:600;color:${overallColor}">
+                Overall: ${esc(data.status.toUpperCase())} — ${data.checks.length} checks
+            </div>` +
+            data.checks.map(c => `
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+                ${opsSevBadge(c.status)}
+                <div style="flex:1">
+                    <div style="font-size:.9rem;font-weight:500">${esc(c.check)}</div>
+                    <div style="font-size:.8rem;color:var(--text2)">${esc(c.detail)}</div>
+                </div>
+                <div style="font-size:.75rem;color:var(--text2)">${esc(c.category)}</div>
+            </div>`).join('');
+
+        opsLoadRecentHealth();
+    } catch (e) {
+        el.innerHTML = `<div class="empty" style="color:var(--danger)">Health snapshot failed: ${esc(e.message)}</div>`;
+    }
+}
+
+async function opsLoadRecentHealth() {
+    const el = document.getElementById('opsRecentHealth');
+    if (!el) return;
+    try {
+        const data = await apiFetch('/api/superadmin/ops/audit?limit=10&category=health');
+        if (!data.entries || !data.entries.length) {
+            el.innerHTML = '<div class="empty">No health history yet. Run a snapshot first.</div>';
+            return;
+        }
+        el.innerHTML = '<div class="table-wrap"><table><thead><tr><th>Time</th><th>Check</th><th>Result</th><th>Severity</th></tr></thead><tbody>' +
+            data.entries.map(e => `<tr>
+                <td style="font-size:.8rem;white-space:nowrap">${formatDate(e.timestamp)}</td>
+                <td style="font-size:.85rem">${esc(e.module)}</td>
+                <td style="font-size:.8rem;color:var(--text2)">${esc(e.message.replace('Health check — ' + e.module + ': ', ''))}</td>
+                <td>${opsSevBadge(e.severity)}</td>
+            </tr>`).join('') +
+            '</tbody></table></div>';
+    } catch (e) {
+        el.innerHTML = `<div class="empty" style="color:var(--danger)">Failed: ${esc(e.message)}</div>`;
+    }
+}
+
+// ── Audit Log ─────────────────────────────────────────────────
+let _opsAuditOffset = 0;
+const _opsAuditPageSize = 50;
+
+async function opsLoadAuditLog(resetPage) {
+    if (resetPage || resetPage === undefined) _opsAuditOffset = 0;
+    const el     = document.getElementById('opsAuditTable');
+    const pager  = document.getElementById('opsAuditPager');
+    if (!el) return;
+    el.innerHTML = '<div class="empty">Loading…</div>';
+
+    const sev = document.getElementById('opsAuditSevFilter')?.value || '';
+    const cat = document.getElementById('opsAuditCatFilter')?.value || '';
+    const q   = document.getElementById('opsAuditSearch')?.value.trim() || '';
+
+    const params = new URLSearchParams({ limit: _opsAuditPageSize, offset: _opsAuditOffset });
+    if (sev) params.set('severity', sev);
+    if (cat) params.set('category', cat);
+    if (q)   params.set('q', q);
+
+    try {
+        const data = await apiFetch('/api/superadmin/ops/audit?' + params.toString());
+        if (!data.entries || !data.entries.length) {
+            el.innerHTML = '<div class="empty">No audit events match the current filters.</div>';
+            pager.innerHTML = '';
+            return;
+        }
+        el.innerHTML = '<div class="table-wrap"><table><thead><tr>' +
+            '<th>Time</th><th>Sev</th><th>Cat</th><th>Module</th><th>Message</th><th>Source</th>' +
+            '</tr></thead><tbody>' +
+            data.entries.map(e => `<tr>
+                <td style="font-size:.78rem;white-space:nowrap">${formatDate(e.timestamp)}</td>
+                <td>${opsSevBadge(e.severity)}</td>
+                <td style="font-size:.8rem">${esc(e.category)}</td>
+                <td style="font-size:.82rem;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(e.module)}">${esc(e.module)}</td>
+                <td style="font-size:.82rem">${esc(e.message)}</td>
+                <td style="font-size:.78rem;color:var(--text2)">${esc(e.source)}</td>
+            </tr>`).join('') +
+            '</tbody></table></div>';
+
+        // Pager
+        const total = data.total;
+        const pageNum = Math.floor(_opsAuditOffset / _opsAuditPageSize) + 1;
+        const totalPages = Math.ceil(total / _opsAuditPageSize) || 1;
+        pager.innerHTML = `
+            <button class="btn btn-secondary btn-sm" onclick="_opsAuditOffset=Math.max(0,_opsAuditOffset-${_opsAuditPageSize});opsLoadAuditLog(false)" ${_opsAuditOffset === 0 ? 'disabled' : ''}>← Prev</button>
+            <span>Page ${pageNum} of ${totalPages} (${total} events)</span>
+            <button class="btn btn-secondary btn-sm" onclick="_opsAuditOffset=_opsAuditOffset+${_opsAuditPageSize};opsLoadAuditLog(false)" ${_opsAuditOffset + _opsAuditPageSize >= total ? 'disabled' : ''}>Next →</button>`;
+    } catch (e) {
+        el.innerHTML = `<div class="empty" style="color:var(--danger)">Failed: ${esc(e.message)}</div>`;
+    }
+}
+
+async function opsWriteAuditEvent() {
+    const cat = document.getElementById('opsWriteCategory')?.value;
+    const sev = document.getElementById('opsWriteSeverity')?.value;
+    const mod = document.getElementById('opsWriteModule')?.value.trim();
+    const msg = document.getElementById('opsWriteMessage')?.value.trim();
+    if (!msg) { toast('Message is required.', 'error'); return; }
+    try {
+        await apiFetch('/api/superadmin/ops/audit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ category: cat, severity: sev, module: mod, message: msg, source: 'manual' }),
+        });
+        toast('Event recorded.', 'success');
+        document.getElementById('opsWriteMessage').value = '';
+        opsLoadAuditLog();
+    } catch (e) {
+        toast('Failed: ' + e.message, 'error');
+    }
+}
+
+async function opsExportAuditCsv() {
+    const url = API + '/api/superadmin/ops/report?format=csv&days=30';
+    const resp = await fetch(url, { headers: { 'X-Superadmin-Key': _key } });
+    if (!resp.ok) { toast('Export failed.', 'error'); return; }
+    const blob = await resp.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ledgerman-ops-audit-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+}
+
+// ── Incidents ─────────────────────────────────────────────────
+async function opsLoadIncidents() {
+    const el = document.getElementById('opsIncidentsTable');
+    if (!el) return;
+    el.innerHTML = '<div class="empty">Loading…</div>';
+
+    const status = document.getElementById('opsIncStatusFilter')?.value || '';
+    const sev    = document.getElementById('opsIncSevFilter')?.value || '';
+    const params = new URLSearchParams({ limit: 100 });
+    if (status) params.set('status', status);
+    if (sev)    params.set('severity', sev);
+
+    try {
+        const data = await apiFetch('/api/superadmin/ops/incidents?' + params.toString());
+        if (!data.incidents || !data.incidents.length) {
+            el.innerHTML = '<div class="empty">No incidents match the current filters. Great news!</div>';
+            return;
+        }
+        el.innerHTML = data.incidents.map(inc => `
+            <div style="border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px" id="inc-${esc(inc.id)}">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+                    ${opsSevBadge(inc.severity)}
+                    ${opsStatusBadge(inc.status)}
+                    <div style="font-weight:600;flex:1">${esc(inc.title)}</div>
+                    <div style="font-size:.75rem;color:var(--text2)">${formatDate(inc.created_at)}</div>
+                </div>
+                ${inc.description ? `<div style="font-size:.85rem;color:var(--text2);margin-bottom:6px">${esc(inc.description)}</div>` : ''}
+                ${inc.root_cause ? `<div style="font-size:.82rem;margin-bottom:4px"><strong>Root cause:</strong> ${esc(inc.root_cause)}</div>` : ''}
+                ${inc.remediation ? `<div style="font-size:.82rem;margin-bottom:4px"><strong>Remediation:</strong> ${esc(inc.remediation)}</div>` : ''}
+                ${inc.resolved_at ? `<div style="font-size:.78rem;color:var(--success)">Resolved: ${formatDate(inc.resolved_at)}</div>` : ''}
+                <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+                    ${inc.status !== 'resolved' && inc.status !== 'closed' ? `
+                        <button class="btn btn-secondary btn-sm" onclick="opsUpdateIncident('${esc(inc.id)}', {status:'investigating'})">→ Investigating</button>
+                        <button class="btn btn-secondary btn-sm" onclick="opsUpdateIncident('${esc(inc.id)}', {status:'monitoring'})">→ Monitoring</button>
+                        <button class="btn btn-primary btn-sm" onclick="opsResolveIncident('${esc(inc.id)}')">✓ Resolve</button>
+                    ` : ''}
+                    ${inc.status !== 'closed' ? `<button class="btn btn-secondary btn-sm" onclick="opsUpdateIncident('${esc(inc.id)}', {status:'closed'})">✕ Close</button>` : ''}
+                </div>
+            </div>`).join('');
+    } catch (e) {
+        el.innerHTML = `<div class="empty" style="color:var(--danger)">Failed: ${esc(e.message)}</div>`;
+    }
+}
+
+function opsShowNewIncident() {
+    const form = document.getElementById('opsNewIncidentForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+async function opsCreateIncident() {
+    const title      = document.getElementById('opsIncTitle')?.value.trim();
+    const severity   = document.getElementById('opsIncSeverity')?.value;
+    const category   = document.getElementById('opsIncCategory')?.value;
+    const desc       = document.getElementById('opsIncDesc')?.value.trim();
+    const rootCause  = document.getElementById('opsIncRootCause')?.value.trim();
+    const remediation = document.getElementById('opsIncRemediation')?.value.trim();
+    if (!title) { toast('Title is required.', 'error'); return; }
+    try {
+        await apiFetch('/api/superadmin/ops/incidents', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, severity, category, description: desc, root_cause: rootCause, remediation }),
+        });
+        toast('Incident created.', 'success');
+        document.getElementById('opsNewIncidentForm').style.display = 'none';
+        document.getElementById('opsIncTitle').value = '';
+        document.getElementById('opsIncDesc').value = '';
+        document.getElementById('opsIncRootCause').value = '';
+        document.getElementById('opsIncRemediation').value = '';
+        opsLoadIncidents();
+    } catch (e) {
+        toast('Failed: ' + e.message, 'error');
+    }
+}
+
+async function opsUpdateIncident(id, patch) {
+    try {
+        await apiFetch('/api/superadmin/ops/incidents/' + id, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patch),
+        });
+        toast('Incident updated.', 'success');
+        opsLoadIncidents();
+    } catch (e) {
+        toast('Failed: ' + e.message, 'error');
+    }
+}
+
+async function opsResolveIncident(id) {
+    const notes = prompt('Resolution notes (optional):') || '';
+    await opsUpdateIncident(id, { status: 'resolved', remediation_result: 'resolved', resolution_notes: notes });
+}
+
+// ── Timeline ──────────────────────────────────────────────────
+async function opsLoadTimeline() {
+    const el   = document.getElementById('opsTimelineView');
+    const days = document.getElementById('opsTimelineDays')?.value || 30;
+    if (!el) return;
+    el.innerHTML = '<div class="empty">Loading timeline…</div>';
+    try {
+        const data = await apiFetch(`/api/superadmin/ops/timeline?days=${days}&limit=200`);
+        if (!data.events || !data.events.length) {
+            el.innerHTML = '<div class="empty">No events in this period.</div>';
+            return;
+        }
+        // Group events by date
+        const byDate = {};
+        data.events.forEach(e => {
+            const d = (e.timestamp || '').slice(0, 10);
+            if (!byDate[d]) byDate[d] = [];
+            byDate[d].push(e);
+        });
+        const datesSorted = Object.keys(byDate).sort().reverse();
+        el.innerHTML = datesSorted.map(date => `
+            <div style="margin-bottom:20px">
+                <div style="font-weight:700;font-size:.85rem;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">${date}</div>
+                ${byDate[date].map(e => {
+                    if (e.type === 'incident') {
+                        return `<div style="display:flex;gap:10px;padding:8px 10px;border-radius:6px;border:1px solid var(--border);margin-bottom:6px;background:rgba(220,38,38,.05)">
+                            <div style="font-size:1.1rem;padding-top:1px">🚨</div>
+                            <div style="flex:1">
+                                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                                    ${opsSevBadge(e.severity)} ${opsStatusBadge(e.status)}
+                                    <span style="font-size:.9rem;font-weight:500">${esc(e.title)}</span>
+                                </div>
+                                ${e.rootCause ? `<div style="font-size:.78rem;color:var(--text2);margin-top:3px">Root cause: ${esc(e.rootCause)}</div>` : ''}
+                            </div>
+                            <div style="font-size:.75rem;color:var(--text2);white-space:nowrap">${(e.timestamp||'').slice(11,16)}</div>
+                        </div>`;
+                    }
+                    const iconMap = { health: '💚', auth: '🔐', persistence: '💾', backup: '📦', deployment: '🚀', remediation: '🔧', drift: '⚠️' };
+                    const icon = iconMap[e.category] || '📋';
+                    return `<div style="display:flex;gap:10px;padding:6px 10px;margin-bottom:4px">
+                        <div style="font-size:.95rem;padding-top:1px">${icon}</div>
+                        <div style="flex:1">
+                            <span style="font-size:.85rem">${esc(e.message)}</span>
+                            ${e.module ? `<span style="font-size:.75rem;color:var(--text2);margin-left:6px">[${esc(e.module)}]</span>` : ''}
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px">
+                            ${opsSevBadge(e.severity)}
+                            <span style="font-size:.75rem;color:var(--text2);white-space:nowrap">${(e.timestamp||'').slice(11,16)}</span>
+                        </div>
+                    </div>`;
+                }).join('')}
+            </div>`).join('');
+    } catch (e) {
+        el.innerHTML = `<div class="empty" style="color:var(--danger)">Failed: ${esc(e.message)}</div>`;
+    }
+}
+
+// ── Reports download ──────────────────────────────────────────
+async function opsDownloadReport(fmt, days) {
+    const url = `${API}/api/superadmin/ops/report?format=${fmt}&days=${days}`;
+    const resp = await fetch(url, { headers: { 'X-Superadmin-Key': _key } });
+    if (!resp.ok) { toast('Report download failed.', 'error'); return; }
+    const blob = await resp.blob();
+    const ext  = fmt === 'csv' ? 'csv' : 'json';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `ledgerman-ops-report-${days}d-${new Date().toISOString().slice(0,10)}.${ext}`;
+    a.click();
+    toast('Report downloaded.', 'success');
+}
+
+// ── END OPS GOVERNANCE MODULE ─────────────────────────────────
 </script>
 
 <script>
