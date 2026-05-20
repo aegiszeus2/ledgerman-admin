@@ -1900,7 +1900,7 @@ async function loadCompanyModules(companyId) {
                 categories[category].modules.push({ 
                     key, 
                     spec, 
-                    permitted: permittedModules[key] !== false,  // Super admin permission (default: true if not set)
+                    permitted: permittedModules[key] === true,   // Super admin permission (only true if explicitly granted)
                     enabled: enabledModules[key] || false        // Company's enabled state (read-only here)
                 });
             }
