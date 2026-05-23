@@ -482,6 +482,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <p style="margin-top:16px;font-size:.75rem;color:var(--text2)">
             Key location: <code style="background:var(--bg3);padding:2px 6px;border-radius:4px">ledgerman-backend/.superadmin_key</code>
         </p>
+        <p id="loginVersion" style="margin-top:8px;font-size:.68rem;color:var(--text2);font-family:monospace;opacity:0.5">checking backend…</p>
     </div>
 </div>
 
@@ -495,6 +496,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div class="top-bar-right">
             <div class="status-dot" id="serverDot" title="Server status"></div>
             <span class="text-sm text-muted" id="serverStatus">Connected</span>
+            <span id="deployVersion" title="Backend deployment fingerprint"
+                  style="font-family:monospace;font-size:0.68rem;color:var(--text2);opacity:0.55;user-select:none;padding:0 4px;white-space:nowrap"></span>
             <button class="btn btn-secondary btn-sm" id="refreshBtn" onclick="refreshSuperAdmin()">↻ Refresh</button>
             <button class="btn btn-secondary btn-sm" id="logoutBtn">Logout</button>
         </div>
@@ -3317,6 +3320,36 @@ function initAIAdmin() {
     // Welcome message
     _aiAddMessage('assistant', 'Hi! I\'m your Super Admin AI. I can help you manage companies, view platform stats, and more.\n\n• "How many companies are active?"\n• "Create a new company called Smith Construction"\n• "Show me all trial companies"\n• "Delete company Patriquin Construction"');
 }
+
+// ── Backend version indicator ────────────────────────────────────────────────
+// Fetches /api/version and shows a non-intrusive build fingerprint.
+// Called on page load; fails silently if endpoint is unavailable.
+async function fetchDeployVersion() {
+    try {
+        var apiBase = (typeof window.LEDGERMAN_API_URL !== 'undefined')
+            ? window.LEDGERMAN_API_URL
+            : window.location.origin;
+        var r = await fetch(apiBase + '/api/version', { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        var d = await r.json();
+        var sha = (d.git_commit || '').slice(0, 7) || 'unknown';
+        var env = d.environment || '';
+        var ts  = (d.deploy_id  || '').slice(0, 16).replace('T', ' ');
+        var label = sha +
+            (env && env !== 'production' ? ' [' + env + ']' : '') +
+            (ts ? ' · ' + ts + ' UTC' : '');
+        var el = document.getElementById('deployVersion');
+        if (el) el.textContent = label;
+        var loginEl = document.getElementById('loginVersion');
+        if (loginEl) loginEl.textContent = 'backend: ' + label;
+    } catch (e) {
+        var el = document.getElementById('deployVersion');
+        if (el) el.textContent = '';
+        var loginEl = document.getElementById('loginVersion');
+        if (loginEl) loginEl.textContent = 'version unavailable';
+    }
+}
+fetchDeployVersion();
 </script>
 
 <!-- Custom Module Modal -->
