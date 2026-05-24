@@ -1888,12 +1888,19 @@ async function loadCompanyModules(companyId) {
 
         // Group modules by category
         const categories = {
-            'security': { label: '🔐 Security', modules: [] },
-            'field_operations': { label: '📍 Field Operations', modules: [] },
-            'reporting': { label: '📊 Reporting & Analytics', modules: [] },
-            'pmi': { label: '📋 PMI Best Practices', modules: [] },
-            'accounting': { label: '💰 Accounting', modules: [] },
-            'ai': { label: '🤖 AI & Automation', modules: [] },
+            'security':           { label: '🔐 Security', modules: [] },
+            // ── Company Admin module categories ───────────────────────────────
+            'project_management': { label: '🏗️ Project Management', modules: [] },
+            'company_accounting': { label: '💼 Accounting & Financial', modules: [] },
+            'company_field':      { label: '📍 Field Operations (Company)', modules: [] },
+            'quality_safety':     { label: '🦺 Quality & Safety', modules: [] },
+            'company_reporting':  { label: '📈 Reporting (Company)', modules: [] },
+            // ── Worker-portal / legacy categories ─────────────────────────────
+            'field_operations':   { label: '⛏️ Field Operations (Worker Portal)', modules: [] },
+            'reporting':          { label: '📊 Reporting & Analytics (Worker Portal)', modules: [] },
+            'pmi':                { label: '📋 PMI Best Practices', modules: [] },
+            'accounting':         { label: '💰 Accounting (Worker Portal)', modules: [] },
+            'ai':                 { label: '🤖 AI & Automation', modules: [] },
         };
 
         // Populate categories — use permitted_modules (super admin control)
