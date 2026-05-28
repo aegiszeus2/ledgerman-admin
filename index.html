@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Ledgerman Super Admin — LittleShield</title>
+<title>LedgerMan Super Admin — LittleShield</title>
 <!-- CACHE BUSTER: 2026-03-30T17:10 -->
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -464,10 +464,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 <div id="loginScreen">
     <div class="login-box">
         <div class="login-logo">
-            <img src="../ledgerman/LedgemanLogo.jpg" alt="Ledgerman" style="max-width:220px;width:100%;height:auto;border-radius:6px;margin-bottom:4px" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🛡️',style:'font-size:3rem'}))">
+            <img src="../ledgerman/LedgerManLogo.svg" alt="LedgerMan" style="max-width:220px;width:100%;height:auto;border-radius:6px;margin-bottom:4px" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🛡️',style:'font-size:3rem'}))">
         </div>
         <h1>LittleShield</h1>
-        <p class="subtitle">Ledgerman Super Admin Console</p>
+        <p class="subtitle">LedgerMan Super Admin Console</p>
         <form id="loginForm">
             <div class="form-group" style="text-align:left">
                 <label>API Key</label>
@@ -491,7 +491,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div class="top-bar">
         <div class="top-bar-brand">
             <span class="shield">🛡️</span>
-            <span>LittleShield <span style="color:var(--text2);font-weight:400;font-size:.875rem">— Ledgerman Console</span></span>
+            <span>LittleShield <span style="color:var(--text2);font-weight:400;font-size:.875rem">— LedgerMan Console</span></span>
         </div>
         <div class="top-bar-right">
             <div class="status-dot" id="serverDot" title="Server status"></div>
@@ -2231,7 +2231,7 @@ function generateOnboardLink() {
     const inviteUrl = `${appUrl}?company=${encodeURIComponent(name)}&password=${encodeURIComponent(password)}`;
 
     // Generate the invitation message
-    const msg = `Hi ${name},\n\nYour Ledgerman account is ready!\n\nClick this link to access your account:\n${inviteUrl}\n\nYour login details are pre-filled. Just click "Login" to get started.\n\nIf you want to change your password, you can do so in Settings after logging in.\n\nQuestions? Email us at lucastheofilou@gmail.com\n\n— Ledgerman Support`;
+    const msg = `Hi ${name},\n\nYour LedgerMan account is ready!\n\nClick this link to access your account:\n${inviteUrl}\n\nYour login details are pre-filled. Just click "Login" to get started.\n\nIf you want to change your password, you can do so in Settings after logging in.\n\nQuestions? Email us at lucastheofilou@gmail.com\n\n— LedgerMan Support`;
 
     el.innerHTML = `
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-top:8px">
@@ -2320,7 +2320,7 @@ async function generateInvite() {
             '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">' +
             '<button class="btn btn-primary" onclick="copyInviteHtml()">📋 Copy HTML</button>' +
             '<button class="btn btn-secondary" onclick="copyInvitePlain()">📝 Copy Plain Text</button>' +
-            '<a class="btn btn-secondary" href="mailto:' + encodeURIComponent(email) + '?subject=' + encodeURIComponent('Streamline Your Workforce Management — Ledgerman') + '&body=' + encodeURIComponent(pitchPlain) + '" target="_blank">📧 Open in Email</a>' +
+            '<a class="btn btn-secondary" href="mailto:' + encodeURIComponent(email) + '?subject=' + encodeURIComponent('Streamline Your Workforce Management — LedgerMan') + '&body=' + encodeURIComponent(pitchPlain) + '" target="_blank">📧 Open in Email</a>' +
             '</div>';
 
         window._inviteHtml = pitchHtml;
@@ -2383,8 +2383,8 @@ function buildPitchEmail(greeting, companyName, domain, logoUrl, primary, second
         '</div>' +
         '<div style="padding:28px 24px;color:#333;font-size:15px;line-height:1.6">' +
         '<p>' + greeting + '</p>' +
-        '<p>I came across <strong>' + esc(companyName || domain) + '</strong> and wanted to reach out — I think <strong>Ledgerman</strong> could save your team serious time and money.</p>' +
-        '<p><strong>What Ledgerman does:</strong></p>' +
+        '<p>I came across <strong>' + esc(companyName || domain) + '</strong> and wanted to reach out — I think <strong>LedgerMan</strong> could save your team serious time and money.</p>' +
+        '<p><strong>What LedgerMan does:</strong></p>' +
         '<ul style="padding-left:20px;margin:12px 0">' +
         '<li><strong>Digital timesheets</strong> — workers clock in/out from their phone. No paper, no buddy punching.</li>' +
         '<li><strong>Photo documentation</strong> — timestamped, GPS-tagged job site photos. Proof of work, instantly.</li>' +
@@ -2392,7 +2392,7 @@ function buildPitchEmail(greeting, companyName, domain, logoUrl, primary, second
         '<li><strong>One-click invoicing</strong> — generate professional invoices from approved timesheets.</li>' +
         '<li><strong>Zero IT setup</strong> — works on any phone, any browser. 5-minute onboarding.</li>' +
         '</ul>' +
-        '<p>Companies using Ledgerman cut admin time by <strong>10+ hours/week</strong> and eliminate timesheet disputes entirely.</p>' +
+        '<p>Companies using LedgerMan cut admin time by <strong>10+ hours/week</strong> and eliminate timesheet disputes entirely.</p>' +
         '<div style="text-align:center;margin:24px 0">' +
         '<a href="https://ledgerman.org" style="display:inline-block;background:' + primary + ';color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px">Start Free Trial →</a>' +
         '</div>' +
@@ -2492,7 +2492,7 @@ async function createAndInviteCompany() {
         // Set up email link
         const emailLink = document.getElementById('unifiedEmailLink');
         emailLink.href = 'mailto:' + encodeURIComponent(email) +
-            '?subject=' + encodeURIComponent('Streamline Your Workforce Management — Ledgerman') +
+            '?subject=' + encodeURIComponent('Streamline Your Workforce Management — LedgerMan') +
             '&body=' + encodeURIComponent(pitchPlain);
 
         // Refresh companies list
