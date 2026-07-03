@@ -798,6 +798,7 @@ async function savePhoto(photoData) {
                         id: photoData.id,
                         projectId:    photoData.projectId    || '',
                         workerId:     photoData.workerId     || '',
+                        workerName:   photoData.workerName   || '',
                         submissionId: photoData.submissionId || '',
                         date:         photoData.date         || '',
                         filename:     photoData.filename     || '',
